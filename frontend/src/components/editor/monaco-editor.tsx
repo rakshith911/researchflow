@@ -34,7 +34,7 @@ export function MonacoEditor({ value, onChange, theme = 'light', className }: Mo
       renderControlCharacters: true,
       smoothScrolling: true,
       cursorBlinking: 'smooth',
-      cursorSmoothCaretAnimation: true,
+      cursorSmoothCaretAnimation: 'on',
     })
     
     // Add custom keyboard shortcuts
@@ -77,7 +77,7 @@ export function MonacoEditor({ value, onChange, theme = 'light', className }: Mo
           folding: true,
           links: true,
           colorDecorators: true,
-          lightbulb: { enabled: true },
+          lightbulb: { enabled: 'On' },
           find: {
             addExtraSpaceOnTop: false,
             autoFindInSelection: 'never',
