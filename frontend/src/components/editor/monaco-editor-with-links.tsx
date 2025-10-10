@@ -157,7 +157,7 @@ export function MonacoEditorWithLinks({
           folding: true,
           links: true,
           colorDecorators: true,
-          lightbulb: { enabled: 'on' },
+          // lightbulb: { enabled: 'on' },
           quickSuggestions: {
             other: true,
             comments: true,
