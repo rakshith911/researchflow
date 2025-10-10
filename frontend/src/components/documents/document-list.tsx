@@ -112,7 +112,7 @@ export function DocumentList({
         const matchesSearch = localSearchQuery === '' || 
           doc.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           doc.content.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
-          doc.tags.some(tag => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))
+          doc.tags.some((tag: string) => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))
         
         const matchesType = selectedType === 'all' || doc.type === selectedType
         const matchesTag = selectedTag === 'all' || doc.tags.includes(selectedTag)
@@ -531,12 +531,12 @@ export function DocumentList({
                       </p>
                       
                       {document.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                          {document.tags.slice(0, 3).map((tag, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              <Tag className="w-2 h-2 mr-1" />
-                              {tag}
-                            </Badge>
+                      <div className="flex flex-wrap gap-1">
+    {document.tags.slice(0, 3).map((tag: string, index: number) => (
+      <Badge key={index} variant="secondary" className="text-xs">
+        <Tag className="w-2 h-2 mr-1" />
+        {tag}
+      </Badge>
                           ))}
                           {document.tags.length > 3 && (
                             <Badge variant="secondary" className="text-xs">
