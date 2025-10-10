@@ -31,7 +31,7 @@ interface DocumentSettings {
 }
 
 interface AutoSaveState {
-  lastSaved: string
+  lastSaved: Date
   hasUnsavedChanges: boolean
   isAutoSaving: boolean
 }
@@ -103,7 +103,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     showLineNumbers: true,
   },
   autoSaveState: {
-    lastSaved: new Date().toISOString(),
+    lastSaved: new Date(),
     hasUnsavedChanges: false,
     isAutoSaving: false,
   },
@@ -127,7 +127,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         content,
         wordCount,
         readingTime,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       },
       autoSaveState: {
         ...get().autoSaveState,
@@ -144,7 +144,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       currentDocument: {
         ...currentDocument,
         title,
-        updatedAt: new Date().toISOString(),
+        updatedAt: new Date(),
       },
       autoSaveState: {
         ...get().autoSaveState,
@@ -172,7 +172,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
             doc.id === result.data.id ? result.data : doc
           ),
           autoSaveState: {
-            lastSaved: new Date().toISOString(),
+            lastSaved: new Date(),
             hasUnsavedChanges: false,
             isAutoSaving: false,
           }
@@ -219,7 +219,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
           documents: [...get().documents, newDocument],
           isLoading: false,
           autoSaveState: {
-            lastSaved: new Date().toISOString(),
+            lastSaved: new Date(),
             hasUnsavedChanges: false,
             isAutoSaving: false,
           }
@@ -351,10 +351,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       if (result.success) {
         set((state) => ({
           documents: state.documents.map(doc => 
-            doc.id === id ? { ...doc, title, updatedAt: new Date().toISOString() } : doc
+            doc.id === id ? { ...doc, title, updatedAt: new Date() } : doc
           ),
           currentDocument: state.currentDocument?.id === id 
-            ? { ...state.currentDocument, title, updatedAt: new Date().toISOString() }
+            ? { ...state.currentDocument, title, updatedAt: new Date() }
             : state.currentDocument
         }))
 
