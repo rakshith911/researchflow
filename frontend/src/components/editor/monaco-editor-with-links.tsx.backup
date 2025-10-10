@@ -46,7 +46,7 @@ export function MonacoEditorWithLinks({
       renderWhitespace: 'selection',
       smoothScrolling: true,
       cursorBlinking: 'smooth',
-      cursorSmoothCaretAnimation: 'on',
+      cursorSmoothCaretAnimation: true,
     })
 
     // ✅ ADDED: Call the onMount prop to pass editor to parent
