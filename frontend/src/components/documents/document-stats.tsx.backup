@@ -18,7 +18,7 @@ interface Document {
   type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general'
   wordCount: number
   readingTime: number
-  updatedAt: string | Date
+  updatedAt: string
   tags: string[]
 }
 
