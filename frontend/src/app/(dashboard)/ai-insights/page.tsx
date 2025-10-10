@@ -34,25 +34,31 @@ export default function AIInsightsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const loadAIInsights = async () => {
-      try {
-        const result = await apiClient.get<{ success: boolean; data: AIInsightsData; error?: string }>('/api/insights/ai')
-        
-        if (result.success) {
-          setInsightsData(result.data)
-        } else {
-          throw new Error(result.error || 'Failed to load insights')
-        }
-      } catch (error) {
-        console.error('Failed to load AI insights:', error)
-        setError(error instanceof Error ? error.message : 'Unknown error')
-      } finally {
-        setIsLoading(false)
-      }
-    }
+  const loadAIInsights = async () => {
+    try {
+      // ✅ If apiClient is Axios, destructure the response
+      const { data: result } = await apiClient.get<{
+        success: boolean
+        data: AIInsightsData
+        error?: string
+      }>('/api/insights/ai')
 
-    loadAIInsights()
-  }, [])
+      if (result?.success && result?.data) {
+        setInsightsData(result.data)
+      } else {
+        throw new Error(result?.error || 'Failed to load insights')
+      }
+    } catch (error) {
+      console.error('Failed to load AI insights:', error)
+      setError(error instanceof Error ? error.message : 'Unknown error')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  loadAIInsights()
+}, [])
+
 
   if (isLoading) {
     return (
