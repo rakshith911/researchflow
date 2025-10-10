@@ -1,0 +1,23 @@
+{
+  "id": "dbbd8d9a-2aa9-411b-9f7e-ccc3fc7a247d",
+  "title": "Research Dument 2",
+  "content": "# Research Document\n\n## Abstract\nBrief summary of your research findings and methodology...\n\n## 1. Introduction\n### Background\n### Research Questions\n### Objectives\n\n## 2. Literature Review\nReview of existing research in this area...\n\n## 3. Methodology\n### Research Design\n### Data Collection Methods\n### Analysis Approach\n\n## 4. Results\n### Key Findings\n### Data Analysis\n### Statistical Results\n\n## 5. Discussion\n### Interpretation of Results\n### Implications\n### Limitations\n\n## 6. Conclusion\nSummary of findings and future research directions...\n\n## References\n1. Author, A. (Year). Title of paper. *Journal Name*, Volume(Issue), pages.\n2. Author, B. (Year). Title of book. Publisher.",
+  "type": "research",
+  "tags": [
+    "# Research Document",
+    "## Abstract",
+    "Brief summary of",
+    "## 1. Introduction",
+    "### Background",
+    "### Objectives",
+    "Review",
+    "## 3. Methodology"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-23T23:44:20.111Z",
+  "updatedAt": "2025-09-24T16:44:20.738Z",
+  "version": 3,
+  "wordCount": 101,
+  "readingTime": 1
+}

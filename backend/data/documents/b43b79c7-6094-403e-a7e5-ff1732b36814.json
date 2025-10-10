@@ -1,0 +1,21 @@
+{
+  "id": "b43b79c7-6094-403e-a7e5-ff1732b36814",
+  "title": "This is the first document created",
+  "content": "# First Documen\n\n I will start writing \n\n## Section 1\n\n## Section 2",
+  "type": "general",
+  "tags": [
+    "# Document Title",
+    "## Section 1",
+    "## Section 2",
+    "# First Document",
+    "###",
+    "# First Documen"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-23T19:43:56.076Z",
+  "updatedAt": "2025-09-23T19:45:22.806Z",
+  "version": 11,
+  "wordCount": 13,
+  "readingTime": 1
+}

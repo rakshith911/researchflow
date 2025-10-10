@@ -1,0 +1,23 @@
+{
+  "id": "5d840a08-8b1b-4391-a620-93bcf52fc4a2",
+  "title": "Untitled Document",
+  "content": "# Meeting Notes\n**Date**: 9/23/2025\n**Time**: [Start Time] - [End Time]\n**Location**: [Physical Location / Virtual Platform]\n**Meeting Type**: [Team Meeting / Project Review / Client Call]\n**Facilitator**: [Name]\n**Note Taker**: [Name]\n\n## Attendees\n### Present\n- [ ] [Name] - [Title/Role] - [Department]\n- [ ] [Name] - [Title/Role] - [Department]\n- [ ] [Name] - [Title/Role] - [Department]\n\n### Absent\n- [ ] [Name] - [Title/Role] - [Reason for absence]\n\n## Agenda\n1. **Welcome and Introductions** (5 min)\n2. **Review of Previous Action Items** (10 min)\n3. **Main Discussion Topics** (30 min)\n   - Topic 1: [Title]\n   - Topic 2: [Title]\n   - Topic 3: [Title]\n4. **New Business** (10 min)\n5. **Action Items and Next Steps** (5 min)\n6. **Next Meeting Planning** (5 min)\n\n## Previous Action Items Review\n| Action Item | Assigned To | Due Date | Status | Notes |\n|-------------|-------------|----------|--------|-------|\n| [Previous action] | [Name] | [Date] | ✅ Complete | [Update] |\n| [Previous action] | [Name] | [Date] | 🔄 In Progress | [Update] |\n| [Previous action] | [Name] | [Date] | ❌ Overdue | [Update] |\n\n## Discussion Points\n\n### Topic 1: [Title]\n**Presenter**: [Name]\n**Duration**: [Time]\n\n**Key Points Discussed**:\n- Point 1\n- Point 2\n- Point 3\n\n**Decisions Made**:\n- Decision 1\n- Decision 2\n\n**Concerns Raised**:\n- Concern 1 (Raised by [Name])\n- Concern 2 (Raised by [Name])\n\n**Follow-up Required**:\n- [ ] Action item 1\n- [ ] Action item 2\n\n### Topic 2: [Title]\n**Presenter**: [Name]\n**Duration**: [Time]\n\n**Key Points Discussed**:\n- Point 1\n- Point 2\n\n**Decisions Made**:\n- Decision 1\n\n**Open Questions**:\n- Question 1\n- Question 2\n\n### Topic 3: [Title]\n**Presenter**: [Name]\n**Duration**: [Time]\n\n**Discussion Summary**:\n[Brief summary of the main discussion points]\n\n**Resolution**:\n[What was decided or agreed upon]\n\n## New Business\n- Item 1: [Description]\n- Item 2: [Description]\n\n## Action Items\n| Priority | Action Item | Assigned To | Due Date | Success Criteria |\n|----------|-------------|-------------|----------|------------------|\n| 🔴 High | [Action description] | [Name] | [Date] | [How we know it's done] |\n| 🟡 Medium | [Action description] | [Name] | [Date] | [How we know it's done] |\n| 🟢 Low | [Action description] | [Name] | [Date] | [How we know it's done] |\n\n## Decisions Made\n1. **Decision 1**: [Description]\n   - **Rationale**: [Why this decision was made]\n   - **Impact**: [Who/what this affects]\n\n2. **Decision 2**: [Description]\n   - **Rationale**: [Why this decision was made]\n   - **Impact**: [Who/what this affects]\n\n## Next Meeting\n- **Date**: [Next meeting date]\n- **Time**: [Next meeting time]\n- **Location**: [Next meeting location]\n- **Agenda Items for Next Meeting**:\n  1. Review action items from this meeting\n  2. [Topic 1]\n  3. [Topic 2]\n\n## Additional Notes\n[Any other important information, side conversations, or context that should be captured]\n\n## Attachments/References\n- [ ] Document 1: [Name and location]\n- [ ] Document 2: [Name and location]\n- [ ] Presentation slides: [Location]\n\n---\n*Meeting notes compiled by: [Note Taker Name]*\n*Distributed to: [Distribution list]*\n*Next review date: [Date]*",
+  "type": "meeting",
+  "tags": [
+    "# Meeting Notes",
+    "Time] -",
+    "[End Time]",
+    "Type**:",
+    "**Facilitator**:",
+    "Taker**:",
+    "## Attendees",
+    "### Present"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-23T23:44:49.985Z",
+  "updatedAt": "2025-09-23T23:44:49.985Z",
+  "version": 1,
+  "wordCount": 506,
+  "readingTime": 3
+}

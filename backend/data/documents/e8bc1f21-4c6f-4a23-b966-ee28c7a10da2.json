@@ -1,0 +1,23 @@
+{
+  "id": "e8bc1f21-4c6f-4a23-b966-ee28c7a10da2",
+  "title": "Untitled Document",
+  "content": "# Meeting Notes\n**Date**: 9/24/2025\n**Time**: \n**Location**: \n**Meeting Type**: \n\n## Attendees\n- [ ] Name 1 (Role)\n- [ ] Name 2 (Role)\n- [ ] Name 3 (Role)\n\n## Agenda\n1. Review previous action items\n2. Topic 1\n3. Topic 2\n4. Next steps\n\n## Discussion Points\n\n### Topic 1: [Title]\n**Discussion**: \n**Decisions**: \n**Concerns**: \n\n### Topic 2: [Title]\n**Discussion**: \n**Decisions**: \n**Concerns**: \n\n## Action Items\n- [ ] **Action 1** - Assigned to: [Name] - Due: [Date]\n- [ ] **Action 2** - Assigned to: [Name] - Due: [Date]\n- [ ] **Action 3** - Assigned to: [Name] - Due: [Date]\n\n## Next Meeting\n- **Date**: \n- **Time**: \n- **Agenda Items**: \n\n## Notes\nAdditional notes and comments...",
+  "type": "meeting",
+  "tags": [
+    "# Meeting Notes",
+    "**Location**:",
+    "Type**:",
+    "## Attendees",
+    "1 (Role)",
+    "2 (Role)",
+    "3 (Role)",
+    "## Agenda"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-24T18:32:56.353Z",
+  "updatedAt": "2025-09-24T18:32:56.353Z",
+  "version": 1,
+  "wordCount": 117,
+  "readingTime": 1
+}

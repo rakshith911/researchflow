@@ -1,0 +1,23 @@
+{
+  "id": "b660174b-56b7-4586-8f6b-df677f94af7e",
+  "title": "Untitled Document",
+  "content": "# Clinical Protocol: [Condition/Procedure]\n\n## Patient Population\n### Inclusion Criteria\n- Criteria 1\n- Criteria 2\n\n### Exclusion Criteria\n- Criteria 1\n- Criteria 2\n\n## Assessment Protocol\n### Initial Assessment\n- [ ] Medical history review\n- [ ] Physical examination\n- [ ] Diagnostic tests\n\n### Follow-up Schedule\n- Day 1: Initial assessment\n- Week 1: Follow-up evaluation\n- Month 1: Progress review\n\n## Treatment Guidelines\n### Standard Care\n1. Primary intervention\n2. Supportive care measures\n3. Monitoring parameters\n\n### Emergency Procedures\nIf complications arise:\n1. Immediate actions\n2. Escalation protocol\n3. Documentation requirements\n\n## Documentation Requirements\n- [ ] Informed consent obtained\n- [ ] Baseline measurements recorded\n- [ ] Treatment plan documented\n- [ ] Progress notes updated\n\n## Quality Metrics\n- Primary outcome measure\n- Secondary outcome measures\n- Safety parameters\n\n## References\n- Clinical guidelines reference 1\n- Research study reference 2",
+  "type": "healthcare",
+  "tags": [
+    "- Criteria 1",
+    "- Criteria 2",
+    "### Follow-",
+    "Schedule",
+    "- Day 1:",
+    "Initial assessment",
+    "- Week 1:",
+    "Follow-"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-24T23:22:54.812Z",
+  "updatedAt": "2025-09-24T23:22:54.812Z",
+  "version": 1,
+  "wordCount": 149,
+  "readingTime": 1
+}

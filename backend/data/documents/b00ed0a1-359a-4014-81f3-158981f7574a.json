@@ -1,0 +1,23 @@
+{
+  "id": "b00ed0a1-359a-4014-81f3-158981f7574a",
+  "title": "Untitled Document",
+  "content": "# Research Title\n\n## Abstract\nBrief summary of your research findings and methodology...\n\n## 1. Introduction\n### Background\n### Research Questions\n### Objectives\n\n## 2. Literature Review\nReview of existing research...\n\n## 3. Methodology\n### Research Design\n### Data Collection\n### Analysis Methods\n\n## 4. Results\n### Key Findings\n### Data Analysis\n\n## 5. Discussion\n### Implications\n### Limitations\n\n## 6. Conclusion\nSummary and future work...\n\n## References\n1. Author, A. (Year). Title. Journal.\n2. Author, B. (Year). Title. Conference.",
+  "type": "research",
+  "tags": [
+    "# Research Title",
+    "## Abstract",
+    "Brief summary of",
+    "## 1. Introduction",
+    "### Background",
+    "### Objectives",
+    "Review",
+    "## 3. Methodology"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-24T23:20:32.580Z",
+  "updatedAt": "2025-09-24T23:20:32.580Z",
+  "version": 1,
+  "wordCount": 80,
+  "readingTime": 1
+}

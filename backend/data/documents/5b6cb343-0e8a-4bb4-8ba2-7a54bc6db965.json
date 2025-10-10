@@ -1,0 +1,21 @@
+{
+  "id": "5b6cb343-0e8a-4bb4-8ba2-7a54bc6db965",
+  "title": "My First Research Paper",
+  "content": "# Research Title\n\nThis is my research about AI...\n\n## Introduction\n\nLet me start with the background...",
+  "type": "research",
+  "tags": [
+    "# Research Title",
+    "my research",
+    "AI...",
+    "## Introduction",
+    "the background...",
+    "research"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-23T19:26:01.211Z",
+  "updatedAt": "2025-09-23T19:26:01.211Z",
+  "version": 1,
+  "wordCount": 17,
+  "readingTime": 1
+}

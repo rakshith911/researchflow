@@ -1,0 +1,23 @@
+{
+  "id": "8cf83965-e912-473d-a1d0-6a8152ff8f86",
+  "title": "Untitled Document",
+  "content": "# Technical Specification: [Project Name]\n\n## Overview\nBrief description of the project and its purpose...\n\n## Requirements\n### Functional Requirements\n- [ ] Requirement 1\n- [ ] Requirement 2\n- [ ] Requirement 3\n\n### Non-Functional Requirements\n- **Performance**: Response time < 200ms\n- **Scalability**: Support 10k concurrent users\n- **Security**: Implement OAuth 2.0 authentication\n\n## System Architecture\n### High-Level Design\nDescription of the overall system architecture...\n\n### Components\n- **Frontend**: React/Next.js application\n- **Backend**: Node.js API server\n- **Database**: PostgreSQL with Redis cache\n\n## API Specification\n### Endpoints\n```\nGET /api/users\nPOST /api/users\nPUT /api/users/:id\nDELETE /api/users/:id\n```\n\n## Implementation Plan\n### Phase 1: Core Features\n- [ ] User authentication\n- [ ] Basic CRUD operations\n\n### Phase 2: Advanced Features\n- [ ] Real-time updates\n- [ ] Advanced search\n\n## Testing Strategy\n- Unit tests for all components\n- Integration tests for API endpoints\n- End-to-end tests for critical user flows",
+  "type": "engineering",
+  "tags": [
+    "Name]",
+    "## Overview",
+    "its purpose...",
+    "## Requirements",
+    "- [ ] Requirement 1",
+    "- [ ] Requirement 2",
+    "- [ ] Requirement 3",
+    "###"
+  ],
+  "linkedDocuments": [],
+  "collaborators": [],
+  "createdAt": "2025-09-25T17:15:30.750Z",
+  "updatedAt": "2025-09-25T17:15:30.750Z",
+  "version": 1,
+  "wordCount": 156,
+  "readingTime": 1
+}

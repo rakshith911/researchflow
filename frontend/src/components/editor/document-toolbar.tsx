@@ -1,0 +1,329 @@
+'use client'
+
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Bold, 
+  Italic, 
+  Link, 
+  List, 
+  ListOrdered,
+  Quote,
+  Code,
+  Code2,
+  Heading1,
+  Heading2,
+  Heading3,
+  Image,
+  Table,
+  Keyboard,
+  Strikethrough,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Minus,
+  Share2,
+  MessageSquare
+} from 'lucide-react'
+import { ImageUploadDialog } from './image-upload-dialog'
+import { LinkInsertDialog } from './link-insert-dialog'
+import { TableInsertDialog } from './table-insert-dialog'
+import { CodeBlockSelector } from './code-block-selector'
+import { KeyboardShortcutsDialog } from './keyboard-shortcuts-dialog'
+import { ShareDocumentDialog } from '@/components/collaboration/share-document-dialog'
+import { CommentsPanel } from '@/components/collaboration/comments-panel'
+
+interface DocumentToolbarProps {
+  onInsertMarkdown?: (markdown: string) => void
+  documentId?: string
+  documentTitle?: string
+  commentCount?: number
+}
+
+export function DocumentToolbar({ 
+  onInsertMarkdown, 
+  documentId,
+  documentTitle = 'Untitled Document',
+  commentCount = 0
+}: DocumentToolbarProps) {
+  const [showImageDialog, setShowImageDialog] = useState(false)
+  const [showLinkDialog, setShowLinkDialog] = useState(false)
+  const [showTableDialog, setShowTableDialog] = useState(false)
+  const [showCodeDialog, setShowCodeDialog] = useState(false)
+  const [showShortcutsDialog, setShowShortcutsDialog] = useState(false)
+  const [showShareDialog, setShowShareDialog] = useState(false)
+  const [showCommentsPanel, setShowCommentsPanel] = useState(false)
+
+  const handleInsert = (markdown: string) => {
+    if (onInsertMarkdown) {
+      onInsertMarkdown(markdown)
+    }
+  }
+
+  const handleImageInsert = (imageUrl: string, altText: string) => {
+    handleInsert(`![${altText}](${imageUrl})`)
+  }
+
+  const handleLinkInsert = (url: string, text: string) => {
+    handleInsert(`[${text}](${url})`)
+  }
+
+  const handleTableInsert = (tableMarkdown: string) => {
+    handleInsert(tableMarkdown)
+  }
+
+  const handleCodeInsert = (language: string, code?: string) => {
+    const codeBlock = `\`\`\`${language}\n${code || '// Your code here'}\n\`\`\``
+    handleInsert(codeBlock)
+  }
+
+  return (
+    <>
+      <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-white sticky top-0 z-10">
+        {/* Headings */}
+        <div className="flex items-center space-x-1 border-r pr-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('# ')}
+            title="Heading 1 (⌘⌥1)"
+          >
+            <Heading1 className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('## ')}
+            title="Heading 2 (⌘⌥2)"
+          >
+            <Heading2 className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('### ')}
+            title="Heading 3 (⌘⌥3)"
+          >
+            <Heading3 className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Text Formatting */}
+        <div className="flex items-center space-x-1 border-r pr-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('**text**')}
+            title="Bold (⌘B)"
+          >
+            <Bold className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('*text*')}
+            title="Italic (⌘I)"
+          >
+            <Italic className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('~~text~~')}
+            title="Strikethrough"
+          >
+            <Strikethrough className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('`code`')}
+            title="Inline Code"
+          >
+            <Code className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Lists and Blocks */}
+        <div className="flex items-center space-x-1 border-r pr-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('- ')}
+            title="Bullet List (⌘⇧8)"
+          >
+            <List className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('1. ')}
+            title="Numbered List (⌘⇧7)"
+          >
+            <ListOrdered className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('> ')}
+            title="Quote (⌘⇧9)"
+          >
+            <Quote className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleInsert('---\n')}
+            title="Horizontal Rule"
+          >
+            <Minus className="w-4 h-4" />
+          </Button>
+        </div>
+        
+        {/* Links and Media */}
+        <div className="flex items-center space-x-1 border-r pr-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowLinkDialog(true)}
+            title="Insert Link (⌘K)"
+          >
+            <Link className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowImageDialog(true)}
+            title="Upload Image (⌘⇧I)"
+          >
+            <Image className="w-4 h-4" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowTableDialog(true)}
+            title="Insert Table (⌘⇧T)"
+          >
+            <Table className="w-4 h-4" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowCodeDialog(true)}
+            title="Code Block (⌘⇧K)"
+          >
+            <Code2 className="w-4 h-4" />
+          </Button>
+        </div>
+
+        {/* Collaboration - NEW! */}
+        {documentId && (
+          <div className="flex items-center space-x-1 border-r pr-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowShareDialog(true)}
+              title="Share Document"
+              className="gap-1"
+            >
+              <Share2 className="w-4 h-4" />
+              <span className="text-xs hidden sm:inline">Share</span>
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowCommentsPanel(true)}
+              title="Comments"
+              className="gap-1 relative"
+            >
+              <MessageSquare className="w-4 h-4" />
+              {commentCount > 0 && (
+                <Badge 
+                  variant="secondary" 
+                  className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
+                >
+                  {commentCount > 99 ? '99+' : commentCount}
+                </Badge>
+              )}
+              <span className="text-xs hidden sm:inline">Comments</span>
+            </Button>
+          </div>
+        )}
+
+        {/* Utilities */}
+        <div className="flex items-center space-x-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowShortcutsDialog(true)}
+            title="Keyboard Shortcuts"
+          >
+            <Keyboard className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+
+      {/* Dialogs */}
+      <ImageUploadDialog
+        open={showImageDialog}
+        onClose={() => setShowImageDialog(false)}
+        onInsert={handleImageInsert}
+        documentId={documentId}
+      />
+
+      <LinkInsertDialog
+        open={showLinkDialog}
+        onClose={() => setShowLinkDialog(false)}
+        onInsert={handleLinkInsert}
+      />
+
+      <TableInsertDialog
+        open={showTableDialog}
+        onClose={() => setShowTableDialog(false)}
+        onInsert={handleTableInsert}
+      />
+
+      <CodeBlockSelector
+        open={showCodeDialog}
+        onClose={() => setShowCodeDialog(false)}
+        onInsert={handleCodeInsert}
+      />
+
+      <KeyboardShortcutsDialog
+        open={showShortcutsDialog}
+        onClose={() => setShowShortcutsDialog(false)}
+      />
+
+      {/* Collaboration Dialogs - NEW! */}
+      {documentId && (
+        <>
+          <ShareDocumentDialog
+            open={showShareDialog}
+            onClose={() => setShowShareDialog(false)}
+            documentId={documentId}
+            documentTitle={documentTitle}
+          />
+
+          <CommentsPanel
+            documentId={documentId}
+            isOpen={showCommentsPanel}
+            onClose={() => setShowCommentsPanel(false)}
+          />
+        </>
+      )}
+    </>
+  )
+}
