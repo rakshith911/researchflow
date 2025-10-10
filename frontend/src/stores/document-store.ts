@@ -11,9 +11,9 @@ interface Document {
   tags: string[]
   linkedDocuments: string[]
   collaborators: string[]
-  createdAt: Date
-  updatedAt: Date
-  lastAccessedAt?: Date
+  createdAt: Date | string  // Allow both Date and string
+  updatedAt: Date | string  // Allow both Date and string
+  lastAccessedAt?: Date | string  // Allow both Date and string
   version: number
   wordCount: number
   readingTime: number
