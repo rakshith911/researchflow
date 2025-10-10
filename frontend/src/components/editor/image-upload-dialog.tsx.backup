@@ -94,7 +94,7 @@ export function ImageUploadDialog({ open, onClose, onInsert, documentId }: Image
     if (droppedFile && droppedFile.type.startsWith('image/')) {
       const fakeEvent = {
         target: { files: [droppedFile] }
-      } as unknown as React.ChangeEvent<HTMLInputElement>
+      } as React.ChangeEvent<HTMLInputElement>
       handleFileSelect(fakeEvent)
     }
   }
