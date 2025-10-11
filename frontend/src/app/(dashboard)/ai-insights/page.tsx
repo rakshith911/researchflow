@@ -36,21 +36,19 @@ export default function AIInsightsPage() {
   useEffect(() => {
   const loadAIInsights = async () => {
     try {
-      // ✅ If apiClient is Axios, destructure the response
-      const { data: result } = await apiClient.get<{
-        success: boolean
-        data: AIInsightsData
-        error?: string
-      }>('/api/insights/ai')
-
-      if (result?.success && result?.data) {
-        setInsightsData(result.data)
+      const response = await apiClient.get<AIInsightsData>('/api/insights/ai')
+      
+      console.log('Full API Response:', response)
+      
+      if (response?.success && response?.data) {
+        setInsightsData(response.data)
       } else {
-        throw new Error(result?.error || 'Failed to load insights')
+        throw new Error(response?.error || 'Failed to load insights')
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to load AI insights:', error)
-      setError(error instanceof Error ? error.message : 'Unknown error')
+      const errorMessage = error?.message || 'Failed to load AI insights'
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -58,7 +56,6 @@ export default function AIInsightsPage() {
 
   loadAIInsights()
 }, [])
-
 
   if (isLoading) {
     return (
