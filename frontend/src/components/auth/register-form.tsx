@@ -8,8 +8,37 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, X } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
+
+interface PasswordRequirement {
+  label: string;
+  test: (password: string) => boolean;
+}
+
+const PASSWORD_REQUIREMENTS: PasswordRequirement[] = [
+  {
+    label: 'At least 8 characters',
+    test: (pwd) => pwd.length >= 8
+  },
+  {
+    label: 'One uppercase letter',
+    test: (pwd) => /[A-Z]/.test(pwd)
+  },
+  {
+    label: 'One lowercase letter',
+    test: (pwd) => /[a-z]/.test(pwd)
+  },
+  {
+    label: 'One number',
+    test: (pwd) => /\d/.test(pwd)
+  },
+  {
+    label: 'One special character (!@#$%^&*)',
+    test: (pwd) => /[!@#$%^&*(),.?":{}|<>]/.test(pwd)
+  }
+];
 
 export function RegisterForm() {
   const router = useRouter();
@@ -19,6 +48,11 @@ export function RegisterForm() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [validationError, setValidationError] = useState('');
+  const [showRequirements, setShowRequirements] = useState(false);
+
+  // Check which requirements are met
+  const requirementsMet = PASSWORD_REQUIREMENTS.map(req => req.test(password));
+  const allRequirementsMet = requirementsMet.every(met => met);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +60,19 @@ export function RegisterForm() {
     setValidationError('');
 
     // Validation
-    if (password.length < 6) {
-      setValidationError('Password must be at least 6 characters');
+    if (!name.trim()) {
+      setValidationError('Name is required');
+      return;
+    }
+
+    if (!email.trim()) {
+      setValidationError('Email is required');
+      return;
+    }
+
+    if (!allRequirementsMet) {
+      setValidationError('Password does not meet all requirements');
+      setShowRequirements(true);
       return;
     }
 
@@ -83,6 +128,7 @@ export function RegisterForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={isLoading}
+            autoComplete="email"
           />
         </div>
 
@@ -94,12 +140,34 @@ export function RegisterForm() {
             placeholder="••••••••"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            onFocus={() => setShowRequirements(true)}
             required
             disabled={isLoading}
+            autoComplete="new-password"
           />
-          <p className="text-xs text-muted-foreground">
-            Must be at least 6 characters
-          </p>
+          
+          {/* Password Requirements */}
+          {showRequirements && (
+            <div className="mt-3 p-3 border rounded-lg bg-muted/30 space-y-2">
+              <p className="text-sm font-medium mb-2">Password must contain:</p>
+              {PASSWORD_REQUIREMENTS.map((requirement, index) => (
+                <div 
+                  key={index}
+                  className={cn(
+                    "flex items-center space-x-2 text-sm transition-colors",
+                    requirementsMet[index] ? "text-green-600" : "text-muted-foreground"
+                  )}
+                >
+                  {requirementsMet[index] ? (
+                    <Check className="h-4 w-4 flex-shrink-0" />
+                  ) : (
+                    <X className="h-4 w-4 flex-shrink-0" />
+                  )}
+                  <span>{requirement.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -112,7 +180,20 @@ export function RegisterForm() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             disabled={isLoading}
+            autoComplete="new-password"
           />
+          {confirmPassword && password !== confirmPassword && (
+            <p className="text-xs text-destructive flex items-center gap-1">
+              <X className="h-3 w-3" />
+              Passwords do not match
+            </p>
+          )}
+          {confirmPassword && password === confirmPassword && (
+            <p className="text-xs text-green-600 flex items-center gap-1">
+              <Check className="h-3 w-3" />
+              Passwords match
+            </p>
+          )}
         </div>
 
         <Button type="submit" className="w-full" disabled={isLoading}>

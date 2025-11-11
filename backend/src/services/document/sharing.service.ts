@@ -20,7 +20,7 @@ export class SharingService {
   }
 
   /**
-   * Create a new share for a document
+   * Create a new share for a document (email-based invitation)
    */
   async createShare(
     userId: string,
@@ -38,18 +38,44 @@ export class SharingService {
       throw new Error('Document not found or you do not have permission to share it')
     }
 
+    // Find user by email
+    const sharedWithUser = await db.get(
+      'SELECT id, email, name FROM users WHERE email = ?',
+      [input.sharedWithEmail.toLowerCase()]
+    )
+
+    if (!sharedWithUser) {
+      throw new Error(`User with email "${input.sharedWithEmail}" not found. They need to create an account first.`)
+    }
+
+    // Check if user is trying to share with themselves
+    if (sharedWithUser.id === userId) {
+      throw new Error('You cannot share a document with yourself')
+    }
+
+    // Check if document is already shared with this user
+    const existingShare = await db.get(
+      'SELECT * FROM shared_documents WHERE document_id = ? AND shared_with_user_id = ?',
+      [input.documentId, sharedWithUser.id]
+    )
+
+    if (existingShare) {
+      throw new Error('Document is already shared with this user')
+    }
+
     const shareId = uuidv4()
     const shareToken = this.generateShareToken()
     const now = new Date().toISOString()
 
     await db.run(
       `INSERT INTO shared_documents (
-        id, document_id, owner_id, share_token, permission, expires_at, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        id, document_id, owner_id, shared_with_user_id, share_token, permission, expires_at, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         shareId,
         input.documentId,
         userId,
+        sharedWithUser.id,
         shareToken,
         input.permission,
         input.expiresAt || null,
@@ -67,7 +93,7 @@ export class SharingService {
       throw new Error('Failed to create share')
     }
 
-    logger.info(`Share created: ${shareId} for document: ${input.documentId}`)
+    logger.info(`Document shared: ${input.documentId} by user: ${userId} with user: ${sharedWithUser.id}`)
     return share
   }
 
@@ -122,11 +148,14 @@ export class SharingService {
         sd.*,
         d.title as document_title,
         d.type as document_type,
-        u.email as owner_email,
-        u.name as owner_name
+        owner.email as owner_email,
+        owner.name as owner_name,
+        shared_user.email as shared_with_email,
+        shared_user.name as shared_with_name
        FROM shared_documents sd
        JOIN documents d ON sd.document_id = d.id
-       JOIN users u ON sd.owner_id = u.id
+       JOIN users owner ON sd.owner_id = owner.id
+       JOIN users shared_user ON sd.shared_with_user_id = shared_user.id
        WHERE sd.document_id = ?
        ORDER BY sd.created_at DESC`,
       [documentId]
@@ -146,11 +175,14 @@ export class SharingService {
         sd.*,
         d.title as document_title,
         d.type as document_type,
-        u.email as owner_email,
-        u.name as owner_name
+        owner.email as owner_email,
+        owner.name as owner_name,
+        shared_user.email as shared_with_email,
+        shared_user.name as shared_with_name
        FROM shared_documents sd
        JOIN documents d ON sd.document_id = d.id
-       JOIN users u ON sd.owner_id = u.id
+       JOIN users owner ON sd.owner_id = owner.id
+       JOIN users shared_user ON sd.shared_with_user_id = shared_user.id
        WHERE sd.owner_id = ?
        ORDER BY sd.created_at DESC`,
       [userId]
@@ -160,29 +192,28 @@ export class SharingService {
   }
 
   /**
-   * Get all documents shared with user (via valid share tokens they've accessed)
-   * Note: Since shares are token-based, we track via access logs
+   * Get all documents shared with user
    */
   async getSharedWithMe(userId: string): Promise<SharedDocumentWithDetails[]> {
     const db = await getDatabase()
 
-    // Get unique shares user has accessed
     const shares = await db.all<SharedDocumentWithDetails[]>(
-      `SELECT DISTINCT
+      `SELECT 
         sd.*,
         d.title as document_title,
         d.type as document_type,
-        u.email as owner_email,
-        u.name as owner_name
+        owner.email as owner_email,
+        owner.name as owner_name,
+        shared_user.email as shared_with_email,
+        shared_user.name as shared_with_name
        FROM shared_documents sd
        JOIN documents d ON sd.document_id = d.id
-       JOIN users u ON sd.owner_id = u.id
-       JOIN share_access_logs sal ON sd.id = sal.share_id
-       WHERE sal.user_id = ?
-       AND sd.owner_id != ?
+       JOIN users owner ON sd.owner_id = owner.id
+       JOIN users shared_user ON sd.shared_with_user_id = shared_user.id
+       WHERE sd.shared_with_user_id = ?
        AND (sd.expires_at IS NULL OR sd.expires_at > datetime('now'))
-       ORDER BY sal.accessed_at DESC`,
-      [userId, userId]
+       ORDER BY sd.created_at DESC`,
+      [userId]
     )
 
     return shares
@@ -261,12 +292,51 @@ export class SharingService {
   }
 
   /**
-   * Check if user has access to a document (either owner or via share)
+   * Check if user has access to a document via share token
    */
   async checkAccess(
     userId: string,
-    documentId: string,
-    token?: string
+    token: string
+  ): Promise<ShareAccessInfo> {
+    const db = await getDatabase()
+
+    // Get share by token
+    const share = await this.getShareByToken(token)
+
+    if (!share) {
+      return {
+        hasAccess: false,
+        permission: null,
+        isOwner: false,
+        documentId: ''
+      }
+    }
+
+    // Check if the logged-in user is the one the document was shared with
+    if (share.shared_with_user_id !== userId) {
+      return {
+        hasAccess: false,
+        permission: null,
+        isOwner: false,
+        documentId: share.document_id
+      }
+    }
+
+    return {
+      hasAccess: true,
+      permission: share.permission as SharePermission,
+      isOwner: share.owner_id === userId,
+      documentId: share.document_id,
+      shareId: share.id
+    }
+  }
+
+  /**
+   * Check if user has access to a document by ID (either owner or shared)
+   */
+  async checkDocumentAccess(
+    userId: string,
+    documentId: string
   ): Promise<ShareAccessInfo> {
     const db = await getDatabase()
 
@@ -285,21 +355,22 @@ export class SharingService {
       }
     }
 
-    // Check if user has access via share token
-    if (token) {
-      const share = await this.getShareByToken(token)
+    // Check if document is shared with user
+    const share = await db.get<SharedDocument>(
+      `SELECT * FROM shared_documents 
+       WHERE document_id = ? 
+       AND shared_with_user_id = ?
+       AND (expires_at IS NULL OR expires_at > datetime('now'))`,
+      [documentId, userId]
+    )
 
-      if (share && share.document_id === documentId) {
-        // Log access
-        await this.logAccess(share.id, userId, 'view')
-
-        return {
-          hasAccess: true,
-          permission: share.permission as SharePermission,
-          isOwner: false,
-          documentId,
-          shareId: share.id
-        }
+    if (share) {
+      return {
+        hasAccess: true,
+        permission: share.permission as SharePermission,
+        isOwner: false,
+        documentId,
+        shareId: share.id
       }
     }
 
@@ -317,7 +388,7 @@ export class SharingService {
    */
   async logAccess(
     shareId: string,
-    userId: string | null,
+    userId: string,
     action: 'view' | 'edit',
     ipAddress?: string
   ): Promise<void> {
@@ -331,7 +402,7 @@ export class SharingService {
       [logId, shareId, userId, action, ipAddress || null, new Date().toISOString()]
     )
 
-    logger.info(`Access logged: ${action} on share ${shareId} by user ${userId || 'anonymous'}`)
+    logger.info(`Access logged: ${action} on share ${shareId} by user ${userId}`)
   }
 
   /**

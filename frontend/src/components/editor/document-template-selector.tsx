@@ -248,12 +248,12 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
   }
   
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto m-4">
+    <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+      <Card className="w-full max-w-4xl max-h-[90vh] overflow-auto m-4 bg-card border-border">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle className="text-2xl">Choose a Template</CardTitle>
-            <CardDescription>
+            <CardTitle className="text-2xl text-foreground">Choose a Template</CardTitle>
+            <CardDescription className="text-muted-foreground">
               Select a template that matches your workflow to get started quickly
             </CardDescription>
           </div>
@@ -268,20 +268,20 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
               return (
                 <Card 
                   key={template.id} 
-                  className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-blue-200"
+                  className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary/50 bg-card"
                   onClick={() => handleSelectTemplate(template)}
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center space-x-2">
-                      <IconComponent className="h-6 w-6 text-blue-600" />
-                      <CardTitle className="text-lg">{template.name}</CardTitle>
+                      <IconComponent className="h-6 w-6 text-primary" />
+                      <CardTitle className="text-lg text-card-foreground">{template.name}</CardTitle>
                     </div>
                     <Badge variant="outline" className="w-fit capitalize">
                       {template.type}
                     </Badge>
                   </CardHeader>
                   <CardContent>
-                    <CardDescription className="text-sm">
+                    <CardDescription className="text-sm text-muted-foreground">
                       {template.description}
                     </CardDescription>
                   </CardContent>
@@ -290,9 +290,9 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
             })}
           </div>
           
-          <div className="mt-6 pt-6 border-t">
+          <div className="mt-6 pt-6 border-t border-border">
             <div className="flex justify-between items-center">
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted-foreground">
                 You can always change the template later or start with a blank document.
               </p>
               <div className="space-x-2">

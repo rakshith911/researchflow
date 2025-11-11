@@ -20,15 +20,15 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="border-b bg-white/50 backdrop-blur-sm sticky top-0 z-50">
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">ResearchFlow</span>
+            <Brain className="h-8 w-8 text-primary" />
+            <span className="text-2xl font-bold text-foreground">ResearchFlow</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
+            <Badge variant="secondary" className="bg-green-500/10 text-green-600 dark:bg-green-500/20 dark:text-green-400 border-green-500/20">
               <CheckCircle className="w-3 h-3 mr-1" />
               Prototype Ready
             </Badge>
@@ -40,13 +40,13 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="py-20 px-4 bg-gradient-to-b from-blue-50 to-white">
+      <section className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
         <div className="container mx-auto text-center max-w-4xl">
-          <h1 className="text-5xl font-bold text-gray-900 mb-6">
+          <h1 className="text-5xl font-bold text-foreground mb-6">
             AI-Powered Productivity for
-            <span className="text-blue-600 block">Professionals</span>
+            <span className="text-primary block">Professionals</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+          <p className="text-xl text-muted-foreground mb-8 leading-relaxed">
             ResearchFlow automatically adapts to your professional domain—whether you're conducting 
             literature research, documenting technical specifications, or managing clinical protocols.
           </p>
@@ -57,58 +57,58 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-background">
         <div className="container mx-auto max-w-6xl">
-          <h2 className="text-3xl font-bold text-center mb-12 text-gray-900">
+          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
             Intelligent Features That Adapt to Your Work
           </h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-2 hover:border-blue-200 transition-colors">
+            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
               <CardHeader className="pb-4">
-                <Brain className="h-10 w-10 text-blue-600 mb-2" />
-                <CardTitle className="text-lg">Context-Aware AI</CardTitle>
+                <Brain className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
+                <CardTitle className="text-lg text-card-foreground">Context-Aware AI</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>
+                <CardDescription className="text-muted-foreground">
                   Automatically detects your workflow context and adapts the interface 
                   for research, engineering, or healthcare tasks.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-green-200 transition-colors">
+            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
               <CardHeader className="pb-4">
-                <Network className="h-10 w-10 text-green-600 mb-2" />
-                <CardTitle className="text-lg">Knowledge Graph</CardTitle>
+                <Network className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />
+                <CardTitle className="text-lg text-card-foreground">Knowledge Graph</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>
+                <CardDescription className="text-muted-foreground">
                   Automatically creates and maintains connections between related concepts, 
                   papers, and projects across your work.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-purple-200 transition-colors">
+            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
               <CardHeader className="pb-4">
-                <FileText className="h-10 w-10 text-purple-600 mb-2" />
-                <CardTitle className="text-lg">Unified Workspace</CardTitle>
+                <FileText className="h-10 w-10 text-purple-600 dark:text-purple-400 mb-2" />
+                <CardTitle className="text-lg text-card-foreground">Unified Workspace</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>
+                <CardDescription className="text-muted-foreground">
                   Consolidate research, documentation, and collaboration into a single, 
                   integrated workspace.
                 </CardDescription>
               </CardContent>
             </Card>
 
-            <Card className="border-2 hover:border-orange-200 transition-colors">
+            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
               <CardHeader className="pb-4">
-                <Zap className="h-10 w-10 text-orange-600 mb-2" />
-                <CardTitle className="text-lg">Smart Automation</CardTitle>
+                <Zap className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
+                <CardTitle className="text-lg text-card-foreground">Smart Automation</CardTitle>
               </CardHeader>
               <CardContent>
-                <CardDescription>
+                <CardDescription className="text-muted-foreground">
                   Reduce manual tasks with intelligent auto-tagging, smart search, 
                   and predictive content suggestions.
                 </CardDescription>
@@ -118,13 +118,13 @@ export default function HomePage() {
         </div>
       </section>
 
-      <footer className="bg-gray-900 text-white py-8 px-4 mt-auto">
+      <footer className="bg-muted/30 border-t text-foreground py-8 px-4 mt-auto">
         <div className="container mx-auto text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Brain className="h-6 w-6" />
+            <Brain className="h-6 w-6 text-primary" />
             <span className="text-xl font-bold">ResearchFlow</span>
           </div>
-          <p className="text-gray-400">
+          <p className="text-muted-foreground">
             AI-powered productivity platform for professionals • Built with Next.js, TypeScript, and OpenAI
           </p>
         </div>

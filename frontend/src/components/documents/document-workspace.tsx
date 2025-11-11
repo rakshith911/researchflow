@@ -101,7 +101,7 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-2"></div>
-          <p>Loading your workspace...</p>
+          <p className="text-muted-foreground">Loading your workspace...</p>
         </div>
       </div>
     )
@@ -110,14 +110,14 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
   return (
     <div className={cn("h-full flex flex-col bg-background overflow-hidden", className)}>
       {/* Enhanced Header */}
-      <div className="flex-shrink-0 border-b bg-gradient-to-r from-background to-muted/30">
+      <div className="flex-shrink-0 border-b bg-gradient-to-r from-background to-accent/20">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Brain className="h-6 w-6 text-primary" />
                 <div>
-                  <h1 className="text-2xl font-bold">Document Workspace</h1>
+                  <h1 className="text-2xl font-bold text-foreground">Document Workspace</h1>
                   <p className="text-muted-foreground">
                     AI-powered document management for professionals
                   </p>
@@ -140,58 +140,70 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
             </div>
           </div>
 
-          {/* Workflow Insights Bar */}
+          {/* Workflow Insights Bar - FIXED */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-blue-500 rounded-lg">
-                  <FileText className="h-4 w-4 text-white" />
+            {/* Total Documents Card */}
+            <Card className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20 dark:from-blue-500/20 dark:to-blue-600/10 dark:border-blue-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-blue-500 dark:bg-blue-600 rounded-lg">
+                    <FileText className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Documents</p>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{documents.length}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-blue-600">Total Documents</p>
-                  <p className="text-2xl font-bold text-blue-700">{documents.length}</p>
-                </div>
-              </div>
+              </CardContent>
             </Card>
 
-            <Card className="p-4 bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-green-500 rounded-lg">
-                  <TrendingUp className="h-4 w-4 text-white" />
+            {/* This Week Card */}
+            <Card className="bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20 dark:from-green-500/20 dark:to-green-600/10 dark:border-green-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-green-500 dark:bg-green-600 rounded-lg">
+                    <TrendingUp className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">This Week</p>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">{insights.recentActivity}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-green-600">This Week</p>
-                  <p className="text-2xl font-bold text-green-700">{insights.recentActivity}</p>
-                </div>
-              </div>
+              </CardContent>
             </Card>
 
-            <Card className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-purple-500 rounded-lg">
-                  <Zap className="h-4 w-4 text-white" />
+            {/* Total Words Card */}
+            <Card className="bg-gradient-to-br from-purple-500/10 to-purple-600/5 border-purple-500/20 dark:from-purple-500/20 dark:to-purple-600/10 dark:border-purple-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-purple-500 dark:bg-purple-600 rounded-lg">
+                    <Zap className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Total Words</p>
+                    <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+                      {(insights.totalWords / 1000).toFixed(1)}K
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-purple-600">Total Words</p>
-                  <p className="text-2xl font-bold text-purple-700">
-                    {(insights.totalWords / 1000).toFixed(1)}K
-                  </p>
-                </div>
-              </div>
+              </CardContent>
             </Card>
 
-            <Card className="p-4 bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-              <div className="flex items-center space-x-2">
-                <div className="p-2 bg-orange-500 rounded-lg">
-                  <Brain className="h-4 w-4 text-white" />
+            {/* Most Active Card */}
+            <Card className="bg-gradient-to-br from-orange-500/10 to-orange-600/5 border-orange-500/20 dark:from-orange-500/20 dark:to-orange-600/10 dark:border-orange-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center space-x-2">
+                  <div className="p-2 bg-orange-500 dark:bg-orange-600 rounded-lg">
+                    <Brain className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-orange-600 dark:text-orange-400 font-medium">Most Active</p>
+                    <p className="text-lg font-bold text-orange-700 dark:text-orange-300 capitalize">
+                      {insights.mostProductiveType}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-orange-600">Most Active</p>
-                  <p className="text-lg font-bold text-orange-700 capitalize">
-                    {insights.mostProductiveType}
-                  </p>
-                </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
         </div>
@@ -210,13 +222,13 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
               </Button>
               
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">{documents.length}</span> documents • 
-                <span className="font-medium"> {insights.avgWordsPerDoc}</span> avg words/doc
+                <span className="font-medium text-foreground">{documents.length}</span> documents • 
+                <span className="font-medium text-foreground"> {insights.avgWordsPerDoc}</span> avg words/doc
               </div>
             </div>
 
             <div className="flex items-center space-x-2">
-              <div className="flex items-center border rounded-md">
+              <div className="flex items-center border border-border rounded-md">
                 <Button
                   variant={viewMode === 'grid' ? 'default' : 'ghost'}
                   size="sm"

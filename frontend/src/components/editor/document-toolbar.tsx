@@ -80,9 +80,9 @@ export function DocumentToolbar({
 
   return (
     <>
-      <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-white sticky top-0 z-10">
+      <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-background sticky top-0 z-10">
         {/* Headings */}
-        <div className="flex items-center space-x-1 border-r pr-2">
+        <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
             variant="ghost"
             size="sm"
@@ -112,7 +112,7 @@ export function DocumentToolbar({
         </div>
         
         {/* Text Formatting */}
-        <div className="flex items-center space-x-1 border-r pr-2">
+        <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
             variant="ghost"
             size="sm"
@@ -151,7 +151,7 @@ export function DocumentToolbar({
         </div>
         
         {/* Lists and Blocks */}
-        <div className="flex items-center space-x-1 border-r pr-2">
+        <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
             variant="ghost"
             size="sm"
@@ -190,7 +190,7 @@ export function DocumentToolbar({
         </div>
         
         {/* Links and Media */}
-        <div className="flex items-center space-x-1 border-r pr-2">
+        <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
             variant="ghost"
             size="sm"
@@ -230,7 +230,7 @@ export function DocumentToolbar({
 
         {/* Collaboration - NEW! */}
         {documentId && (
-          <div className="flex items-center space-x-1 border-r pr-2">
+          <div className="flex items-center space-x-1 border-r border-border pr-2">
             <Button
               variant="ghost"
               size="sm"

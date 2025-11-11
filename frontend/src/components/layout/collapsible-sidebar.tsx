@@ -71,7 +71,7 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
   return (
     <div
       className={cn(
-        "relative h-full bg-white border-r flex flex-col transition-all duration-300",
+        "relative h-full bg-background border-r flex flex-col transition-all duration-300",
         isCollapsed ? "w-16" : "w-64",
         className
       )}
@@ -80,15 +80,15 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
       <div className="flex items-center justify-between p-4 border-b">
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">R</span>
+            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+              <span className="text-primary-foreground font-bold text-sm">R</span>
             </div>
-            <span className="font-semibold text-lg">ResearchFlow</span>
+            <span className="font-semibold text-lg text-foreground">ResearchFlow</span>
           </div>
         )}
         {isCollapsed && (
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mx-auto">
-            <span className="text-white font-bold text-sm">R</span>
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mx-auto">
+            <span className="text-primary-foreground font-bold text-sm">R</span>
           </div>
         )}
       </div>
@@ -97,7 +97,7 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
       <Button
         variant="ghost"
         size="sm"
-        className="absolute -right-3 top-20 z-10 h-6 w-6 rounded-full border bg-white shadow-md hover:bg-gray-100"
+        className="absolute -right-3 top-20 z-10 h-6 w-6 rounded-full border bg-background shadow-md hover:bg-accent"
         onClick={() => setIsCollapsed(!isCollapsed)}
       >
         {isCollapsed ? (
@@ -121,7 +121,7 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
           <input
             type="text"
             placeholder="Search All Documents"
-            className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-input rounded-md text-sm bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       )}
@@ -138,8 +138,8 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
                 className={cn(
                   "flex items-center space-x-3 px-3 py-2 rounded-lg transition-colors",
                   isActive
-                    ? "bg-blue-100 text-blue-700"
-                    : "text-gray-700 hover:bg-gray-100",
+                    ? "bg-primary/10 text-primary"
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
                   isCollapsed && "justify-center"
                 )}
                 title={isCollapsed ? item.label : undefined}
@@ -155,8 +155,8 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
                         className={cn(
                           "px-2 py-0.5 rounded-full text-xs font-medium",
                           typeof item.badge === 'number'
-                            ? "bg-gray-200 text-gray-700"
-                            : "bg-blue-100 text-blue-700"
+                            ? "bg-muted text-muted-foreground"
+                            : "bg-primary/10 text-primary"
                         )}
                       >
                         {item.badge}
@@ -173,22 +173,22 @@ export function CollapsibleSidebar({ className }: CollapsibleSidebarProps) {
         {!isCollapsed && (
           <div className="mt-6">
             <div className="px-3 py-2 flex items-center justify-between">
-              <div className="flex items-center space-x-2 text-gray-500">
+              <div className="flex items-center space-x-2 text-muted-foreground">
                 <Clock className="h-4 w-4" />
                 <span className="text-sm font-medium">Recent</span>
               </div>
-              <span className="text-xs text-gray-400">5</span>
+              <span className="text-xs text-muted-foreground">5</span>
             </div>
             <div className="space-y-1 mt-2">
               {recentItems.map((item, index) => (
                 <div
                   key={index}
-                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-gray-100 cursor-pointer"
+                  className="flex items-center space-x-2 px-3 py-2 rounded-lg hover:bg-accent cursor-pointer transition-colors"
                 >
                   <span className="text-sm">{item.icon}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm truncate">{item.label}</p>
-                    <p className="text-xs text-gray-400">{item.date}</p>
+                    <p className="text-sm truncate text-foreground">{item.label}</p>
+                    <p className="text-xs text-muted-foreground">{item.date}</p>
                   </div>
                 </div>
               ))}

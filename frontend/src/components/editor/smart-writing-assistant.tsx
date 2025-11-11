@@ -67,7 +67,7 @@ export function SmartWritingAssistant({
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
           </div>
         </CardContent>
       </Card>
@@ -226,7 +226,7 @@ export function SmartWritingAssistant({
                           <p className="text-xs text-muted-foreground mb-1">Shared concepts:</p>
                           <div className="flex flex-wrap gap-1">
                             {doc.matchedConcepts.slice(0, 3).map((concept: string, i: number) => (
-                              <span key={i} className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded">
+                              <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
                                 {concept}
                               </span>
                             ))}

@@ -17,9 +17,9 @@ export default function KnowledgeGraphPage() {
   }
   
   return (
-    <div className="h-full flex flex-col">
-      <div className="border-b p-4">
-        <h1 className="text-2xl font-bold">Knowledge Graph</h1>
+    <div className="h-full flex flex-col bg-background">
+      <div className="border-b border-border p-4 bg-background">
+        <h1 className="text-2xl font-bold text-foreground">Knowledge Graph</h1>
         <p className="text-muted-foreground">
           Visualize connections and relationships between your documents
         </p>

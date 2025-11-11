@@ -116,23 +116,34 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
 
   const getTypeColor = (type: string) => {
     const colors = {
-      research: 'bg-blue-50 border-blue-200 text-blue-700',
-      engineering: 'bg-green-50 border-green-200 text-green-700',
-      healthcare: 'bg-red-50 border-red-200 text-red-700',
-      meeting: 'bg-purple-50 border-purple-200 text-purple-700',
-      general: 'bg-gray-50 border-gray-200 text-gray-700'
+      research: 'bg-blue-500/10 border-blue-500/30 dark:bg-blue-500/20 dark:border-blue-500/40',
+      engineering: 'bg-green-500/10 border-green-500/30 dark:bg-green-500/20 dark:border-green-500/40',
+      healthcare: 'bg-red-500/10 border-red-500/30 dark:bg-red-500/20 dark:border-red-500/40',
+      meeting: 'bg-purple-500/10 border-purple-500/30 dark:bg-purple-500/20 dark:border-purple-500/40',
+      general: 'bg-muted border-border'
+    }
+    return colors[type as keyof typeof colors] || colors.general
+  }
+
+  const getIconColor = (type: string) => {
+    const colors = {
+      research: 'text-blue-600 dark:text-blue-400',
+      engineering: 'text-green-600 dark:text-green-400',
+      healthcare: 'text-red-600 dark:text-red-400',
+      meeting: 'text-purple-600 dark:text-purple-400',
+      general: 'text-muted-foreground'
     }
     return colors[type as keyof typeof colors] || colors.general
   }
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-background border-border">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Brain className="h-5 w-5 text-primary" />
-              <span>Smart Document Templates</span>
+              <span className="text-foreground">Smart Document Templates</span>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -142,7 +153,7 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
 
         <div className="flex h-[60vh]">
           {/* Category Sidebar */}
-          <div className="w-48 border-r pr-4 space-y-2">
+          <div className="w-48 border-r border-border pr-4 space-y-2">
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Categories</h3>
             {categories.map(category => (
               <Button
@@ -172,11 +183,11 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className="p-2 bg-white rounded-lg shadow-sm">
-                          <template.icon className="h-5 w-5" />
+                        <div className="p-2 bg-background rounded-lg shadow-sm border border-border">
+                          <template.icon className={`h-5 w-5 ${getIconColor(template.type)}`} />
                         </div>
                         <div>
-                          <CardTitle className="text-base">{template.name}</CardTitle>
+                          <CardTitle className="text-base text-foreground">{template.name}</CardTitle>
                           <Badge variant="outline" className="text-xs capitalize mt-1">
                             {template.type}
                           </Badge>
@@ -218,7 +229,7 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
 
             {/* Quick Actions */}
             <div className="mt-6 p-4 bg-muted/50 rounded-lg">
-              <h3 className="text-sm font-medium mb-3">Quick Actions</h3>
+              <h3 className="text-sm font-medium text-foreground mb-3">Quick Actions</h3>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"

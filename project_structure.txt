@@ -1,0 +1,149 @@
+.
+├── backend
+│   ├── data
+│   │   ├── documents
+│   │   │   ├── 085c4a13-8a61-4c4d-8bda-fa1ee5fcfa4c.json
+│   │   │   ├── 185785bb-5900-490a-9714-3ed6f4d23d45.json
+│   │   │   ├── 1a82b061-f12d-4300-93ea-390f24a98460.json
+│   │   │   ├── 5b6cb343-0e8a-4bb4-8ba2-7a54bc6db965.json
+│   │   │   ├── 5d840a08-8b1b-4391-a620-93bcf52fc4a2.json
+│   │   │   ├── 8cf83965-e912-473d-a1d0-6a8152ff8f86.json
+│   │   │   ├── af6911cc-7365-427d-a4aa-7052d31cae20.json
+│   │   │   ├── b00ed0a1-359a-4014-81f3-158981f7574a.json
+│   │   │   ├── b43b79c7-6094-403e-a7e5-ff1732b36814.json
+│   │   │   ├── b660174b-56b7-4586-8f6b-df677f94af7e.json
+│   │   │   ├── bcb714c3-9889-496a-80f7-8e62457865a2.json
+│   │   │   ├── c6022d60-6563-4e5f-8716-042ea99de35d.json
+│   │   │   ├── dbbd8d9a-2aa9-411b-9f7e-ccc3fc7a247d.json
+│   │   │   ├── e71d6dc6-5ade-4f0a-b6cb-3b1491fdf9ce.json
+│   │   │   ├── e8bc1f21-4c6f-4a23-b966-ee28c7a10da2.json
+│   │   │   └── ff519914-3314-418a-8fcf-941bfc2dc924.json
+│   │   ├── researchflow.db
+│   │   └── uploads
+│   │       ├── attachments
+│   │       └── images
+│   ├── nodemon.json
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── src
+│   │   ├── config
+│   │   │   └── database.ts
+│   │   ├── controllers
+│   │   │   ├── auth.controller.ts
+│   │   │   ├── backlinks.controller.ts
+│   │   │   ├── comments.controller.ts
+│   │   │   ├── documents.controller.ts
+│   │   │   ├── insights.controller.ts
+│   │   │   ├── knowledge-graph.controller.ts
+│   │   │   ├── settings.controller.ts
+│   │   │   ├── sharing.controller.ts
+│   │   │   ├── smart-writing.controller.ts
+│   │   │   └── upload.controller.ts
+│   │   ├── middleware
+│   │   │   ├── auth.middleware.ts
+│   │   │   ├── security.middleware.ts
+│   │   │   └── upload.middleware.ts
+│   │   ├── routes
+│   │   │   ├── auth.routes.ts
+│   │   │   ├── backlinks.routes.ts
+│   │   │   ├── comments.routes.ts
+│   │   │   ├── documents.routes.ts
+│   │   │   ├── insights.routes.ts
+│   │   │   ├── knowledge-graph.routes.ts
+│   │   │   ├── settings.routes.ts
+│   │   │   ├── sharing.routes.ts
+│   │   │   ├── smart-writing.routes.ts
+│   │   │   └── upload.routes.ts
+│   │   ├── server.ts
+│   │   ├── services
+│   │   │   ├── ai
+│   │   │   ├── auth
+│   │   │   ├── document
+│   │   │   ├── knowledge-graph
+│   │   │   ├── settings
+│   │   │   ├── storage
+│   │   │   ├── upload
+│   │   │   └── workspace
+│   │   ├── types
+│   │   │   ├── auth.types.ts
+│   │   │   └── sharing.types.ts
+│   │   └── utils
+│   │       └── logger.ts
+│   ├── tests
+│   │   ├── e2e
+│   │   ├── integration
+│   │   └── unit
+│   └── tsconfig.json
+├── deployment
+├── docs
+├── frontend
+│   ├── components.json
+│   ├── next-env.d.ts
+│   ├── next.config.js
+│   ├── package-lock.json
+│   ├── package.json
+│   ├── postcss.config.js
+│   ├── public
+│   │   └── icons
+│   ├── src
+│   │   ├── app
+│   │   │   ├── (auth)
+│   │   │   ├── (dashboard)
+│   │   │   ├── api
+│   │   │   ├── error.tsx
+│   │   │   ├── globals.css
+│   │   │   ├── layout.tsx
+│   │   │   ├── not-found.tsx
+│   │   │   ├── page.tsx
+│   │   │   └── shared
+│   │   ├── components
+│   │   │   ├── ai
+│   │   │   ├── auth
+│   │   │   ├── collaboration
+│   │   │   ├── common
+│   │   │   ├── documents
+│   │   │   ├── editor
+│   │   │   ├── knowledge-graph
+│   │   │   ├── layout
+│   │   │   ├── settings
+│   │   │   ├── ui
+│   │   │   └── workspace
+│   │   ├── hooks
+│   │   │   └── use-smart-writing.ts
+│   │   ├── lib
+│   │   │   ├── ai
+│   │   │   ├── api
+│   │   │   ├── api-client.ts
+│   │   │   ├── auth
+│   │   │   ├── date-utils.ts
+│   │   │   ├── knowledge-graph
+│   │   │   ├── storage
+│   │   │   └── utils.ts
+│   │   ├── stores
+│   │   │   ├── auth-store.ts
+│   │   │   ├── document-store.ts
+│   │   │   ├── document-store.ts.bak
+│   │   │   ├── fix-dates.sh
+│   │   │   ├── knowledge-graph-store.ts
+│   │   │   └── settings-store.ts
+│   │   ├── styles
+│   │   └── types
+│   │       └── collaboration.ts
+│   ├── tailwind.config.js
+│   ├── tsconfig.json
+│   └── tsconfig.json.backup
+├── package-lock.json
+├── package.json
+├── project_structure.txt
+├── scripts
+└── shared
+    ├── package-lock.json
+    ├── package.json
+    ├── src
+    │   ├── ai.types.ts
+    │   ├── common.types.ts
+    │   ├── document.types.ts
+    │   └── index.ts
+    └── tsconfig.json
+
+63 directories, 84 files

@@ -37,11 +37,11 @@ interface DashboardSidebarProps {
 }
 
 const DOC_TYPE_CONFIG = {
-  research: { icon: FileText, label: 'Research', color: 'text-blue-600' },
-  engineering: { icon: FileText, label: 'Engineering', color: 'text-green-600' },
-  healthcare: { icon: FileText, label: 'Healthcare', color: 'text-red-600' },
-  meeting: { icon: Users, label: 'Meeting', color: 'text-purple-600' },
-  general: { icon: File, label: 'General', color: 'text-gray-600' },
+  research: { icon: FileText, label: 'Research', color: 'text-blue-600 dark:text-blue-400' },
+  engineering: { icon: FileText, label: 'Engineering', color: 'text-green-600 dark:text-green-400' },
+  healthcare: { icon: FileText, label: 'Healthcare', color: 'text-red-600 dark:text-red-400' },
+  meeting: { icon: Users, label: 'Meeting', color: 'text-purple-600 dark:text-purple-400' },
+  general: { icon: File, label: 'General', color: 'text-muted-foreground' },
 }
 
 export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
@@ -209,7 +209,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <span className="text-primary-foreground font-bold text-sm">R</span>
                 </div>
-                <span className="font-semibold text-lg">ResearchFlow</span>
+                <span className="font-semibold text-lg text-foreground">ResearchFlow</span>
               </div>
               <Button
                 variant="ghost"
@@ -239,23 +239,23 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
           )}
         </div>
 
-        {/* User Info */}
+        {/* User Info - FIXED */}
         {user && (
           <div className="border-b px-4 py-3">
             {!isCollapsed ? (
               <div className="flex items-center space-x-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                  <User className="h-4 w-4 text-blue-600" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-4 w-4 text-primary" />
                 </div>
                 <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-medium">{user.name}</p>
+                  <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
                   <p className="truncate text-xs text-muted-foreground">{user.email}</p>
                 </div>
               </div>
             ) : (
               <div className="flex justify-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100">
-                  <User className="h-4 w-4 text-blue-600" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-4 w-4 text-primary" />
                 </div>
               </div>
             )}
@@ -296,7 +296,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
                   "flex items-center w-full p-2 rounded-lg text-sm transition-colors",
                   isActive
                     ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted",
+                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
                   isCollapsed && "justify-center"
                 )}
                 title={isCollapsed ? item.title : undefined}
@@ -350,7 +350,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
                       <button
                         key={doc.id}
                         onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-muted rounded-md transition-colors group"
+                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
                       >
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
                           {getDocTypeIcon(doc.type)}
@@ -404,7 +404,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
                       <button
                         key={doc.id}
                         onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-muted rounded-md transition-colors group"
+                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
                       >
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
                           {getDocTypeIcon(doc.type)}
@@ -454,7 +454,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
                       <button
                         key={doc.id}
                         onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-muted rounded-md transition-colors group"
+                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
                       >
                         <div className="flex items-center space-x-2 min-w-0 flex-1">
                           <div className="min-w-0 flex-1">

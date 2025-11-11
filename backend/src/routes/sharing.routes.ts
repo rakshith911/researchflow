@@ -14,7 +14,7 @@ import { authMiddleware } from '../middleware/auth.middleware'
 
 const router = Router()
 
-// All sharing routes require authentication
+// All sharing routes require authentication (including accessing shared documents)
 router.use(authMiddleware)
 
 // ⚠️ IMPORTANT: Specific routes MUST come before parameterized routes
@@ -23,7 +23,7 @@ router.use(authMiddleware)
 router.get('/shared-by-me', getSharedByMe)       // ✅ Get documents I've shared
 router.get('/shared-with-me', getSharedWithMe)   // ✅ Get documents shared with me
 
-// Access shared document via token
+// Access shared document via token (requires login)
 router.get('/shared/:token', accessSharedDocument) // ✅ Access document by share token
 
 // Share management for specific document

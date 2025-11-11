@@ -33,6 +33,7 @@ interface SharedDocument {
   id: string
   document_id: string
   owner_id: string
+  shared_with_user_id: string
   share_token: string
   permission: 'view' | 'comment' | 'edit'
   expires_at: string | null
@@ -42,6 +43,8 @@ interface SharedDocument {
   document_type?: string
   owner_email?: string
   owner_name?: string
+  shared_with_email?: string
+  shared_with_name?: string
   shareUrl?: string
 }
 
@@ -72,19 +75,23 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const token = useAuthStore.getState().token
 
-    const headers: HeadersInit = {
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      ...options.headers,
     }
 
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
 
+    // Merge with any headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers)
+    }
+
     try {
       const response = await fetch(`${this.baseUrl}${endpoint}`, {
         ...options,
-        headers,
+        headers: headers as HeadersInit,
       })
 
       const data = await response.json()
@@ -194,17 +201,19 @@ class ApiClient {
     })
   }
 
-  // ==================== SHARING APIs ====================
+  // ==================== SHARING APIs (EMAIL-BASED) ====================
 
   /**
-   * Create a share link for a document
+   * Share a document with a user by email
    */
   async shareDocument(
-    documentId: string, 
+    documentId: string,
+    email: string,
     permission: 'view' | 'comment' | 'edit',
     expiresAt?: string
   ): Promise<ApiResponse<SharedDocument>> {
     return this.post<SharedDocument>(`/api/sharing/${documentId}`, {
+      email,
       permission,
       expiresAt
     })
@@ -249,7 +258,7 @@ class ApiClient {
   }
 
   /**
-   * Access a shared document via token
+   * Access a shared document via token (requires login)
    */
   async accessSharedDocument(token: string): Promise<ApiResponse<any>> {
     return this.get<any>(`/api/sharing/shared/${token}`)

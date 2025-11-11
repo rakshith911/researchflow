@@ -177,6 +177,50 @@ async function runMigrations() {
           throw error
         }
       }
+    },
+    {
+      name: '003_add_shared_with_user_id',
+      up: async () => {
+        try {
+          logger.info('Running migration: 003_add_shared_with_user_id')
+
+          // Check if shared_documents table exists
+          const tableExists = await db!.get(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name='shared_documents'"
+          )
+
+          if (!tableExists) {
+            logger.info('shared_documents table does not exist yet, skipping migration')
+            return
+          }
+
+          // Check if shared_with_user_id column exists
+          const tableInfo = await db!.all("PRAGMA table_info(shared_documents)")
+          const columnNames = tableInfo.map((col: any) => col.name)
+
+          if (!columnNames.includes('shared_with_user_id')) {
+            await db!.exec('ALTER TABLE shared_documents ADD COLUMN shared_with_user_id TEXT;')
+            logger.info('Added shared_with_user_id column to shared_documents table')
+
+            // Create indexes for the new column
+            await db!.exec(`
+              CREATE INDEX IF NOT EXISTS idx_shared_documents_shared_with_user 
+              ON shared_documents(shared_with_user_id);
+              
+              CREATE INDEX IF NOT EXISTS idx_shared_documents_token_user 
+              ON shared_documents(share_token, shared_with_user_id);
+            `)
+            logger.info('Created indexes for shared_with_user_id column')
+          } else {
+            logger.info('shared_with_user_id column already exists')
+          }
+
+          logger.info('Migration 003_add_shared_with_user_id completed successfully')
+        } catch (error) {
+          logger.error('Error in migration 003:', error)
+          throw error
+        }
+      }
     }
   ]
 

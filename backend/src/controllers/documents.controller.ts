@@ -152,17 +152,17 @@ export const getDocument = async (req: AuthRequest, res: Response) => {
     const { token } = req.query // Optional share token
     
     // First check if user is owner
-    let document = await documentService.getDocument(req.userId, id, true)
+    let document = await documentService.getDocument(req.userId, id)
     
     if (!document && token) {
       // User is not owner, check if they have access via share token
-      const accessInfo = await sharingService.checkAccess(req.userId, id, token as string)
+      const accessInfo = await sharingService.checkAccess(req.userId, token as string)
       
-      if (accessInfo.hasAccess) {
-        // Get document as owner to bypass ownership check
+      if (accessInfo.hasAccess && accessInfo.documentId === id) {
+        // Get share to find owner
         const share = await sharingService.getShareByToken(token as string)
-        if (share) {
-          document = await documentService.getDocument(share.owner_id, id, false)
+        if (share && share.document_id === id) {
+          document = await documentService.getDocument(share.owner_id, id)
           
           // Add share info to response
           if (document) {
@@ -231,9 +231,9 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
 
     // Check if user has edit permission (owner or via share with edit permission)
     if (token) {
-      const accessInfo = await sharingService.checkAccess(req.userId, id, token as string)
+      const accessInfo = await sharingService.checkAccess(req.userId, token as string)
       
-      if (!accessInfo.hasAccess || accessInfo.permission !== 'edit') {
+      if (!accessInfo.hasAccess || accessInfo.permission !== 'edit' || accessInfo.documentId !== id) {
         return res.status(403).json({
           success: false,
           error: 'You do not have edit permission for this document'
@@ -248,7 +248,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
 
       // Get share to find owner
       const share = await sharingService.getShareByToken(token as string)
-      if (!share) {
+      if (!share || share.document_id !== id) {
         return res.status(404).json({
           success: false,
           error: 'Share not found'

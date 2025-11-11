@@ -59,11 +59,71 @@
   }
 }
 
+/* Syntax highlighting for code blocks */
 .hljs {
-  background: #1f2937 !important;
-  color: #f9fafb !important;
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
   border-radius: 0.5rem;
   padding: 1rem;
+}
+
+.dark .hljs {
+  background: hsl(var(--muted)) !important;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-section,
+.hljs-link {
+  color: #c678dd;
+}
+
+.dark .hljs-keyword,
+.dark .hljs-selector-tag,
+.dark .hljs-literal,
+.dark .hljs-section,
+.dark .hljs-link {
+  color: #c678dd;
+}
+
+.hljs-string,
+.hljs-title,
+.hljs-name,
+.hljs-type,
+.hljs-attribute,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition,
+.hljs-variable,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: #98c379;
+}
+
+.hljs-comment,
+.hljs-quote,
+.hljs-deletion,
+.hljs-meta {
+  color: hsl(var(--muted-foreground));
+}
+
+.hljs-number,
+.hljs-regexp,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #d19a66;
+}
+
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-params,
+.hljs-attr {
+  color: #e5c07b;
+}
+
+.hljs-function {
+  color: #61afef;
 }
 
 /* Monaco Editor custom styles */

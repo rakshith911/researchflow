@@ -12,8 +12,9 @@ const router = Router()
 
 router.get('/', authMiddleware, getKnowledgeGraph)
 router.get('/recommendations/:id', authMiddleware, getDocumentRecommendations)
-router.get('/details/:documentId', authMiddleware, getDocumentDetails)
-router.get('/tooltip/:documentId', authMiddleware, getNodeTooltipData)
+// ✅ FIXED: Match frontend expectations
+router.get('/document/:documentId/details', authMiddleware, getDocumentDetails)
+router.get('/document/:documentId/tooltip', authMiddleware, getNodeTooltipData)
 router.get('/analytics', authMiddleware, getGraphAnalytics)
 
 export default router

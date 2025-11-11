@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useDocumentStore } from '@/stores/document-store'
+import { useSettingsStore } from '@/stores/settings-store'
 import { useSmartWriting } from '@/hooks/use-smart-writing'
 import { MonacoEditorWithLinks } from './monaco-editor-with-links'
 import { MarkdownPreview } from './markdown-preview'
@@ -14,7 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
-import { 
+import {
   Plus,
   FileText,
   Save,
@@ -41,7 +42,9 @@ export function DocumentEditor() {
     setCurrentDocument,
     loadDocument
   } = useDocumentStore()
-  
+
+  const { settings } = useSettingsStore()
+
   const [showPreview, setShowPreview] = useState(true)
   const [showAssistant, setShowAssistant] = useState(true)
   const [showBacklinks, setShowBacklinks] = useState(false)
@@ -67,6 +70,16 @@ export function DocumentEditor() {
       analyzeContent(currentDocument.content)
     }
   }, [currentDocument?.content, analyzeContent])
+
+  // Sync editor theme with global theme
+  useEffect(() => {
+    if (!settings) return
+
+    const isDark = settings.theme === 'dark' ||
+                  (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+
+    setEditorTheme(isDark ? 'dark' : 'light')
+  }, [settings])
 
   const handleLinksChange = async (content: string) => {
     if (!currentDocument) return
@@ -223,43 +236,41 @@ export function DocumentEditor() {
         return
       }
 
-      // Cmd/Ctrl + U: Underline (using HTML)
-      if (cmdKey && e.key === 'u') {
+      // Cmd/Ctrl + K: Link
+      if (cmdKey && e.key === 'k' && !e.shiftKey) {
         e.preventDefault()
-        wrapSelection('<u>', '</u>')
+        wrapSelection('[', '](url)')
         return
       }
 
-      // Cmd/Ctrl + `: Inline Code
+      // Cmd/Ctrl + `: Code
       if (cmdKey && e.key === '`') {
         e.preventDefault()
         wrapSelection('`')
         return
       }
 
-      // ✅ HEADING SHORTCUTS
-      // Cmd/Ctrl + Alt + 1: Heading 1
+      // Cmd/Ctrl + Alt + 1: H1
       if (cmdKey && e.altKey && e.key === '1') {
         e.preventDefault()
         handleInsertMarkdown('# ')
         return
       }
 
-      // Cmd/Ctrl + Alt + 2: Heading 2
+      // Cmd/Ctrl + Alt + 2: H2
       if (cmdKey && e.altKey && e.key === '2') {
         e.preventDefault()
         handleInsertMarkdown('## ')
         return
       }
 
-      // Cmd/Ctrl + Alt + 3: Heading 3
+      // Cmd/Ctrl + Alt + 3: H3
       if (cmdKey && e.altKey && e.key === '3') {
         e.preventDefault()
         handleInsertMarkdown('### ')
         return
       }
 
-      // ✅ LIST SHORTCUTS
       // Cmd/Ctrl + Shift + 8: Bullet List
       if (cmdKey && e.shiftKey && e.key === '8') {
         e.preventDefault()
@@ -286,18 +297,19 @@ export function DocumentEditor() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showPreview, isFullscreen, currentDocument, saveDocument])
   
+  // ✅ FIXED: Empty state with proper dark mode support
   if (!currentDocument) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-blue-50 to-indigo-100">
-        <Card className="w-96 shadow-lg">
+      <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/5 via-background to-background">
+        <Card className="w-96 shadow-lg bg-card border-border">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="p-4 bg-blue-100 rounded-full">
-                <FileText className="h-12 w-12 text-blue-600" />
+              <div className="p-4 bg-primary/10 rounded-full">
+                <FileText className="h-12 w-12 text-primary" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-gray-900">Welcome to ResearchFlow</CardTitle>
-            <p className="text-gray-600 mt-2">
+            <CardTitle className="text-2xl text-foreground">Welcome to ResearchFlow</CardTitle>
+            <p className="text-muted-foreground mt-2">
               Create your first document to experience intelligent productivity
             </p>
           </CardHeader>
@@ -345,12 +357,13 @@ export function DocumentEditor() {
         documentId={currentDocument.id}
       />
       
-      <div className="flex items-center justify-between p-4 border-b bg-white">
+      {/* ✅ FIXED: Document header bar */}
+      <div className="flex items-center justify-between p-4 border-b bg-background">
         <div className="flex items-center space-x-4 flex-1">
           <input
             value={currentDocument.title}
             onChange={(e) => updateDocumentTitle(e.target.value)}
-            className="text-xl font-semibold bg-transparent border-none outline-none flex-1 focus:bg-gray-50 px-2 py-1 rounded"
+            className="text-xl font-semibold bg-transparent border-none outline-none flex-1 focus:bg-accent px-2 py-1 rounded text-foreground"
             placeholder="Untitled Document"
           />
           <Badge variant="outline" className="capitalize">{currentDocument.type}</Badge>
@@ -402,9 +415,10 @@ export function DocumentEditor() {
         </div>
       </div>
       
-      <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50 text-sm text-gray-600">
+      {/* ✅ FIXED: Status bar */}
+      <div className="flex items-center justify-between px-4 py-2 border-b bg-muted text-sm text-muted-foreground">
         <div className="flex items-center space-x-4">
-          <span className="font-medium">{currentDocument.wordCount} words</span>
+          <span className="font-medium text-foreground">{currentDocument.wordCount} words</span>
           <span>{currentDocument.readingTime} min read</span>
           <span>Type: {currentDocument.type}</span>
           {currentDocument.tags.length > 0 && (
@@ -414,17 +428,17 @@ export function DocumentEditor() {
         
         <div className="flex items-center space-x-2">
           {autoSaveState.isAutoSaving && (
-            <div className="flex items-center text-blue-600">
+            <div className="flex items-center text-primary">
               <Clock className="w-3 h-3 mr-1 animate-spin" />Saving...
             </div>
           )}
           {!autoSaveState.hasUnsavedChanges && !autoSaveState.isAutoSaving && (
-            <div className="flex items-center text-green-600">
+            <div className="flex items-center text-green-600 dark:text-green-400">
               <Save className="w-3 h-3 mr-1" />Saved {new Date(autoSaveState.lastSaved).toLocaleTimeString()}
             </div>
           )}
           {autoSaveState.hasUnsavedChanges && !autoSaveState.isAutoSaving && (
-            <div className="flex items-center text-orange-600">
+            <div className="flex items-center text-orange-600 dark:text-orange-400">
               <Clock className="w-3 h-3 mr-1" />Unsaved changes
             </div>
           )}
@@ -456,8 +470,8 @@ export function DocumentEditor() {
         }
         preview={
           <div className="border-l flex flex-col h-full">
-            <div className="flex items-center justify-between px-4 py-2 border-b bg-gray-50">
-              <span className="text-sm font-medium text-gray-700">Preview</span>
+            <div className="flex items-center justify-between px-4 py-2 border-b bg-muted">
+              <span className="text-sm font-medium">Preview</span>
               <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)}>
                 <PanelRightClose className="h-3 w-3" />
               </Button>
@@ -470,10 +484,10 @@ export function DocumentEditor() {
           </div>
         }
         assistant={
-          <div className="border-l overflow-y-auto bg-gray-50 h-full">
-            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 border-b bg-white">
+          <div className="border-l overflow-y-auto bg-muted/30 h-full">
+            <div className="sticky top-0 z-10 flex items-center justify-between px-4 py-2 border-b bg-background">
               <div className="flex items-center space-x-2">
-                <Sparkles className="h-4 w-4 text-blue-600" />
+                <Sparkles className="h-4 w-4 text-primary" />
                 <span className="text-sm font-medium">Smart Assistant</span>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setShowAssistant(false)}>

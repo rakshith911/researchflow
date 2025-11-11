@@ -1,21 +1,33 @@
 // frontend/src/components/auth/login-form.tsx
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { login, isLoading, error, clearError } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [redirectMessage, setRedirectMessage] = useState<string | null>(null);
+
+  // Check for redirect parameters
+  useEffect(() => {
+    const returnUrl = searchParams.get('returnUrl');
+    const message = searchParams.get('message');
+    
+    if (message) {
+      setRedirectMessage(decodeURIComponent(message));
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,7 +35,14 @@ export function LoginForm() {
 
     try {
       await login(email, password);
-      router.push('/documents');
+      
+      // Check for return URL to redirect after login
+      const returnUrl = searchParams.get('returnUrl');
+      if (returnUrl) {
+        router.push(decodeURIComponent(returnUrl));
+      } else {
+        router.push('/documents');
+      }
     } catch (error) {
       // Error is handled in the store
     }
@@ -39,6 +58,13 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {redirectMessage && (
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{redirectMessage}</AlertDescription>
+          </Alert>
+        )}
+
         {error && (
           <Alert variant="destructive">
             <AlertDescription>{error}</AlertDescription>
@@ -55,6 +81,7 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             required
             disabled={isLoading}
+            autoFocus
           />
         </div>
 

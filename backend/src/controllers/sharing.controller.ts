@@ -9,7 +9,7 @@ const sharingService = new SharingService()
 const documentService = new DocumentService()
 
 /**
- * Create a new share for a document
+ * Create a new share for a document (requires email of user to share with)
  * POST /api/sharing/:documentId
  */
 export const shareDocument = async (req: AuthRequest, res: Response) => {
@@ -22,7 +22,15 @@ export const shareDocument = async (req: AuthRequest, res: Response) => {
     }
 
     const { documentId } = req.params
-    const { permission, expiresAt } = req.body
+    const { email, permission, expiresAt } = req.body
+
+    // Validate email
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Email address is required'
+      })
+    }
 
     // Validate permission
     if (!permission || !['view', 'comment', 'edit'].includes(permission)) {
@@ -45,6 +53,7 @@ export const shareDocument = async (req: AuthRequest, res: Response) => {
 
     const share = await sharingService.createShare(req.userId, {
       documentId,
+      sharedWithEmail: email,
       permission,
       expiresAt
     })
@@ -52,14 +61,14 @@ export const shareDocument = async (req: AuthRequest, res: Response) => {
     // Build share URL
     const shareUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/shared/${share.share_token}`
 
-    logger.info(`Document shared: ${documentId} by user: ${req.userId}`)
+    logger.info(`Document shared: ${documentId} by user: ${req.userId} with: ${email}`)
     res.status(201).json({
       success: true,
       data: {
         ...share,
         shareUrl
       },
-      message: 'Document shared successfully'
+      message: `Document shared successfully with ${email}`
     })
   } catch (error) {
     logger.error('Error sharing document:', error)
@@ -271,22 +280,33 @@ export const revokeShare = async (req: AuthRequest, res: Response) => {
 
 /**
  * Access a shared document via token (requires authentication)
- * GET /api/shared/:token
+ * GET /api/sharing/shared/:token
  */
 export const accessSharedDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
       return res.status(401).json({
         success: false,
-        error: 'Authentication required to access shared documents'
+        error: 'Please login to access this shared document',
+        requiresAuth: true
       })
     }
 
     const { token } = req.params
 
-    // Get share by token
-    const share = await sharingService.getShareByToken(token)
+    // Check if user has access via this token
+    const accessInfo = await sharingService.checkAccess(req.userId, token)
 
+    if (!accessInfo.hasAccess) {
+      return res.status(403).json({
+        success: false,
+        error: 'You do not have permission to access this document. It may have been shared with a different account.'
+      })
+    }
+
+    // Get share details for logging
+    const share = await sharingService.getShareByToken(token)
+    
     if (!share) {
       return res.status(404).json({
         success: false,
@@ -298,7 +318,7 @@ export const accessSharedDocument = async (req: AuthRequest, res: Response) => {
     const ipAddress = req.ip || req.socket.remoteAddress
     await sharingService.logAccess(share.id, req.userId, 'view', ipAddress)
 
-    // Get the document
+    // Get the document (use owner's ID since they own it)
     const document = await documentService.getDocument(share.owner_id, share.document_id)
 
     if (!document) {
@@ -323,8 +343,8 @@ export const accessSharedDocument = async (req: AuthRequest, res: Response) => {
           isFavorite: document.is_favorite
         },
         shareInfo: {
-          permission: share.permission,
-          isOwner: share.owner_id === req.userId,
+          permission: accessInfo.permission,
+          isOwner: accessInfo.isOwner,
           expiresAt: share.expires_at
         }
       }
