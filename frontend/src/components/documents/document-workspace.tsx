@@ -34,7 +34,7 @@ type ViewMode = 'grid' | 'list'
 export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
   const { 
     documents, 
-    loadAllDocuments, 
+    loadDocuments,  // ✅ FIXED: Changed from loadAllDocuments
     createDocument, 
     setCurrentDocument 
   } = useDocumentStore()
@@ -48,13 +48,13 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
   useEffect(() => {
     const loadDocs = async () => {
       try {
-        await loadAllDocuments()
+        await loadDocuments()  // ✅ FIXED: Changed from loadAllDocuments
       } finally {
         setIsLoading(false)
       }
     }
     loadDocs()
-  }, [loadAllDocuments])
+  }, [loadDocuments])
 
   const handleSelectDocument = (document: any) => {
     setCurrentDocument(document)
@@ -63,8 +63,8 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
 
   const handleCreateDocument = async (type?: any, template?: string) => {
     try {
-      const newDoc = await createDocument(type || 'general', template)
-      setCurrentDocument(newDoc)
+      await createDocument(type || 'general', template)
+      // ✅ Note: createDocument already sets currentDocument in the store
       router.push('/dashboard/editor')
     } catch (error) {
       console.error('Failed to create document:', error)
@@ -72,15 +72,18 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
   }
 
   const getWorkflowInsights = () => {
-    const typeStats = documents.reduce((acc, doc) => {
+    // ✅ FIXED: Safe access with default empty array
+    const safeDocuments = documents || []
+    
+    const typeStats = safeDocuments.reduce((acc, doc) => {
       acc[doc.type] = (acc[doc.type] || 0) + 1
       return acc
     }, {} as Record<string, number>)
 
-    const totalWords = documents.reduce((sum, doc) => sum + doc.wordCount, 0)
-    const avgWordsPerDoc = documents.length > 0 ? Math.round(totalWords / documents.length) : 0
+    const totalWords = safeDocuments.reduce((sum, doc) => sum + (doc.wordCount || 0), 0)
+    const avgWordsPerDoc = safeDocuments.length > 0 ? Math.round(totalWords / safeDocuments.length) : 0
     
-    const recentDocs = documents.filter(doc => {
+    const recentDocs = safeDocuments.filter(doc => {
       const daysSince = (new Date().getTime() - new Date(doc.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
       return daysSince <= 7
     }).length
@@ -95,6 +98,7 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
   }
 
   const insights = getWorkflowInsights()
+  const safeDocuments = documents || [] // ✅ Safe access
 
   if (isLoading) {
     return (
@@ -151,7 +155,7 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
                   </div>
                   <div>
                     <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Total Documents</p>
-                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{documents.length}</p>
+                    <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{safeDocuments.length}</p>
                   </div>
                 </div>
               </CardContent>
@@ -222,7 +226,7 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
               </Button>
               
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium text-foreground">{documents.length}</span> documents • 
+                <span className="font-medium text-foreground">{safeDocuments.length}</span> documents • 
                 <span className="font-medium text-foreground"> {insights.avgWordsPerDoc}</span> avg words/doc
               </div>
             </div>
@@ -256,10 +260,14 @@ export function DocumentWorkspace({ className }: DocumentWorkspaceProps) {
         </div>
       )}
 
-      {/* Document Stats Row */}
-      <div className="flex-shrink-0">
-        <DocumentStats documents={documents} />
-      </div>
+      {/* Document Stats Row - Commented out until component is ready */}
+      {/* 
+      {safeDocuments.length > 0 && (
+        <div className="flex-shrink-0">
+          <DocumentStats documents={safeDocuments} />
+        </div>
+      )}
+      */}
 
       {/* Enhanced Document List - Fixed scrolling */}
       <div className="flex-1 overflow-auto">

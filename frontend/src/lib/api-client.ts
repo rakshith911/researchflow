@@ -73,12 +73,13 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const token = useAuthStore.getState().token
+    const { token, isGuestMode } = useAuthStore.getState()
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     }
 
+    // ✅ Only add auth header if we have a token
     if (token) {
       headers['Authorization'] = `Bearer ${token}`
     }
@@ -96,9 +97,25 @@ class ApiClient {
 
       const data = await response.json()
 
+      // ✅ FIXED: Only redirect to login if NOT in guest mode
       if (response.status === 401) {
-        useAuthStore.getState().logout()
-        window.location.href = '/login'
+        // If user is in guest mode, just return the error without redirecting
+        if (isGuestMode) {
+          return {
+            success: false,
+            error: 'This feature requires authentication. Please sign up to continue.',
+          }
+        }
+        
+        // If authenticated user gets 401, their session expired
+        if (token) {
+          useAuthStore.getState().logout()
+          // ✅ FIXED: Use window.location.replace for cleaner history
+          if (typeof window !== 'undefined') {
+            window.location.replace('/login')
+          }
+        }
+        
         return {
           success: false,
           error: 'Session expired. Please login again.',
@@ -363,8 +380,19 @@ class ApiClient {
       const data = await response.json()
 
       if (response.status === 401) {
+        const { isGuestMode } = useAuthStore.getState()
+        
+        if (isGuestMode) {
+          return {
+            success: false,
+            error: 'File uploads require authentication. Please sign up to continue.',
+          }
+        }
+        
         useAuthStore.getState().logout()
-        window.location.href = '/login'
+        if (typeof window !== 'undefined') {
+          window.location.replace('/login')
+        }
         return {
           success: false,
           error: 'Session expired. Please login again.',

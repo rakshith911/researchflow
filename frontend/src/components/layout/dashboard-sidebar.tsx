@@ -1,15 +1,15 @@
 // frontend/src/components/layout/dashboard-sidebar.tsx
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentStore } from '@/stores/document-store'
 import { useAuthStore } from '@/stores/auth-store'
 import { DocumentTemplateSelector } from '@/components/editor/document-template-selector'
-import { formatRelativeDate } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { 
   FileText,
@@ -17,18 +17,17 @@ import {
   Network,
   Settings,
   Plus,
-  Folder,
   Clock,
   Users,
   ChevronDown,
   ChevronRight,
-  Search,
   PanelLeftClose,
   PanelLeftOpen,
   LogOut,
   User,
   Star,
-  File
+  File,
+  Lock
 } from 'lucide-react'
 
 interface DashboardSidebarProps {
@@ -44,6 +43,22 @@ const DOC_TYPE_CONFIG = {
   general: { icon: File, label: 'General', color: 'text-muted-foreground' },
 }
 
+// Helper function to format relative dates
+function formatRelativeDate(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
+}
+
 export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
@@ -56,10 +71,11 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
     loadFavorites,
     loadRecentDocuments 
   } = useDocumentStore()
-  const { user, logout } = useAuthStore()
+  const { user, logout, isGuestMode } = useAuthStore()
   const [expandedSections, setExpandedSections] = useState<string[]>(['recent', 'favorites'])
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   
+  // Resizing and collapsing state
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(280)
   const [isResizing, setIsResizing] = useState(false)
@@ -69,11 +85,16 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
   const MAX_WIDTH = 500
   const COLLAPSED_WIDTH = 64
 
+  // Safe array access with default empty arrays
+  const safeDocuments = documents || []
+  const safeFavoriteDocuments = favoriteDocuments || []
+  const safeRecentDocuments = recentDocuments || []
+
   // Load favorites and recent documents on mount
   useEffect(() => {
-    loadFavorites()
-    loadRecentDocuments()
-  }, [])
+    if (loadFavorites) loadFavorites()
+    if (loadRecentDocuments) loadRecentDocuments()
+  }, [loadFavorites, loadRecentDocuments])
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => 
@@ -91,6 +112,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
     try {
       await createDocument(type, template)
       setShowTemplateSelector(false)
+      router.push('/editor')
     } catch (error) {
       console.error('Error creating document:', error)
       alert('Error creating document. Please try again.')
@@ -98,7 +120,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
   }
 
   const handleSelectDocument = async (docId: string) => {
-    const document = documents.find(doc => doc.id === docId)
+    const document = safeDocuments.find(d => d.id === docId)
     if (document) {
       setCurrentDocument(document)
       router.push('/editor')
@@ -107,7 +129,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
 
   const handleLogout = () => {
     logout()
-    router.push('/login')
+    router.push('/')
   }
   
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -145,39 +167,61 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
     }
   }, [isResizing, handleMouseMove, handleMouseUp])
   
+  // ✅ FIXED: Navigation items with guest mode access control
   const navigationItems = [
     {
       title: 'Documents',
       icon: FileText,
       href: '/documents',
-      badge: documents.length.toString(),
+      badge: safeDocuments.length.toString(),
+      guestAllowed: true,  // ✅ Guests can access
     },
     {
       title: 'Editor',
       icon: FileText,
       href: '/editor',
+      guestAllowed: true,  // ✅ Guests can access
     },
     {
       title: 'AI Insights',
       icon: Brain,
       href: '/ai-insights',
-      badge: 'New',
+      badge: 'Pro',
+      guestAllowed: false,  // ❌ Requires account
     },
     {
       title: 'Knowledge Graph',
       icon: Network,
       href: '/knowledge-graph',
+      guestAllowed: false,  // ❌ Requires account
     },
     {
       title: 'Collaboration',
       icon: Users,
       href: '/collaboration',
+      guestAllowed: false,  // ❌ Requires account
     },
   ]
+
+  // ✅ Filter navigation based on guest mode
+  const availableNavItems = isGuestMode 
+    ? navigationItems.filter(item => item.guestAllowed)
+    : navigationItems
+
+  // ✅ Handle navigation with guest mode check
+  const handleNavClick = (item: typeof navigationItems[0], e: React.MouseEvent) => {
+    if (isGuestMode && !item.guestAllowed) {
+      e.preventDefault()
+      if (window.confirm('This feature requires a free account. Would you like to sign up?')) {
+        router.push('/register')
+      }
+      return
+    }
+  }
   
-  const documentsByType = documents.reduce((acc, doc) => {
-    if (!acc[doc.type]) acc[doc.type] = []
-    acc[doc.type].push(doc)
+  const documentsByType = safeDocuments.reduce((acc, d) => {
+    if (!acc[d.type]) acc[d.type] = []
+    acc[d.type].push(d)
     return acc
   }, {} as Record<string, any[]>)
 
@@ -190,344 +234,349 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
   if (!isOpen) return null
   
   const currentWidth = isCollapsed ? COLLAPSED_WIDTH : sidebarWidth
-  
+
   return (
     <>
       <div
         ref={sidebarRef}
-        style={{ width: `${currentWidth}px` }}
         className={cn(
-          "relative border-r bg-background flex flex-col transition-all duration-300",
-          isResizing && "transition-none"
+          "relative h-screen border-r border-border bg-card transition-all duration-300",
+          isResizing && "select-none"
         )}
+        style={{ width: `${currentWidth}px` }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b min-h-[64px]">
-          {!isCollapsed ? (
-            <>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-sm">R</span>
-                </div>
-                <span className="font-semibold text-lg text-foreground">ResearchFlow</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsCollapsed(true)}
-                title="Collapse Sidebar"
-                className="h-8 w-8"
-              >
-                <PanelLeftClose className="h-4 w-4" />
-              </Button>
-            </>
-          ) : (
-            <div className="w-full flex flex-col items-center space-y-2">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">R</span>
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsCollapsed(false)}
-                title="Expand Sidebar"
-                className="h-8 w-8"
-              >
-                <PanelLeftOpen className="h-4 w-4" />
-              </Button>
+        {/* Sidebar Header */}
+        <div className="flex h-16 items-center justify-between border-b border-border px-4">
+          {!isCollapsed && (
+            <div className="flex items-center gap-2">
+              <Brain className="h-6 w-6 text-primary" />
+              <span className="font-semibold text-foreground">ResearchFlow</span>
             </div>
           )}
-        </div>
-
-        {/* User Info - FIXED */}
-        {user && (
-          <div className="border-b px-4 py-3">
-            {!isCollapsed ? (
-              <div className="flex items-center space-x-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 overflow-hidden">
-                  <p className="truncate text-sm font-medium text-foreground">{user.name}</p>
-                  <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                </div>
-              </div>
-            ) : (
-              <div className="flex justify-center">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        
-        {/* Action Buttons */}
-        <div className="p-4 space-y-2">
-          <Button 
-            className="w-full" 
-            size="sm" 
-            onClick={handleCreateDocument}
-            title={isCollapsed ? "New Document" : undefined}
-          >
-            <Plus className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-2">New Document</span>}
-          </Button>
-          
-          {!isCollapsed && (
-            <Link href="/documents" className="w-full block">
-              <Button variant="outline" className="w-full" size="sm">
-                <Search className="h-4 w-4 mr-2" />
-                Search Documents
-              </Button>
-            </Link>
-          )}
-        </div>
-        
-        {/* Navigation */}
-        <div className="px-2 space-y-1">
-          {navigationItems.map((item) => {
-            const isActive = pathname === item.href
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center w-full p-2 rounded-lg text-sm transition-colors",
-                  isActive
-                    ? "bg-primary text-primary-foreground"
-                    : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                  isCollapsed && "justify-center"
-                )}
-                title={isCollapsed ? item.title : undefined}
-              >
-                <item.icon className="h-4 w-4 flex-shrink-0" />
-                {!isCollapsed && (
-                  <>
-                    <span className="ml-3 flex-1">{item.title}</span>
-                    {item.badge && (
-                      <Badge 
-                        variant={isActive ? "secondary" : "outline"} 
-                        className="text-xs ml-auto"
-                      >
-                        {item.badge}
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </Link>
-            )
-          })}
-        </div>
-        
-        {/* Document Sections - Only show when expanded */}
-        {!isCollapsed && (
-          <div className="flex-1 overflow-auto mt-4">
-            {/* Favorites */}
-            {favoriteDocuments.length > 0 && (
-              <div className="px-4 py-2">
-                <button
-                  onClick={() => toggleSection('favorites')}
-                  className="flex items-center justify-between w-full p-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsCollapsed(!isCollapsed)}
+                  className="h-8 w-8"
                 >
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 mr-2" />
-                    Favorites
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {favoriteDocuments.length}
-                    </Badge>
-                  </div>
-                  {expandedSections.includes('favorites') ? (
-                    <ChevronDown className="h-3 w-3" />
+                  {isCollapsed ? (
+                    <PanelLeftOpen className="h-4 w-4" />
                   ) : (
-                    <ChevronRight className="h-3 w-3" />
+                    <PanelLeftClose className="h-4 w-4" />
                   )}
-                </button>
-                
-                {expandedSections.includes('favorites') && (
-                  <div className="ml-6 space-y-1 mt-2">
-                    {favoriteDocuments.slice(0, 5).map((doc) => (
-                      <button
-                        key={doc.id}
-                        onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
-                      >
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          {getDocTypeIcon(doc.type)}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-foreground truncate group-hover:text-primary">
-                              {doc.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {formatRelativeDate(doc.updatedAt)}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))}
-                    {favoriteDocuments.length > 5 && (
-                      <Link href="/documents?filter=favorites" className="block ml-2">
-                        <Button variant="ghost" size="sm" className="text-xs">
-                          View all {favoriteDocuments.length} favorites
-                        </Button>
-                      </Link>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                {isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
 
-            {/* Recent Documents */}
-            {recentDocuments.length > 0 && (
-              <div className="px-4 py-2">
+        {/* Sidebar Content */}
+        <div className="flex h-[calc(100vh-4rem)] flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* Create Document Button */}
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleCreateDocument}
+                    className={cn(
+                      "w-full justify-start gap-2 bg-primary text-primary-foreground hover:bg-primary/90",
+                      isCollapsed && "justify-center px-0"
+                    )}
+                  >
+                    <Plus className="h-4 w-4" />
+                    {!isCollapsed && 'New Document'}
+                  </Button>
+                </TooltipTrigger>
+                {isCollapsed && (
+                  <TooltipContent side="right">
+                    Create new document
+                  </TooltipContent>
+                )}
+              </Tooltip>
+            </TooltipProvider>
+
+            {/* Navigation */}
+            <nav className="mt-6 space-y-1">
+              {availableNavItems.map((item) => {
+                const Icon = item.icon
+                const isActive = pathname === item.href
+                const isLocked = isGuestMode && !item.guestAllowed
+                
+                return (
+                  <TooltipProvider key={item.href}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link 
+                          href={isLocked ? '#' : item.href}
+                          onClick={(e) => handleNavClick(item, e)}
+                        >
+                          <Button
+                            variant={isActive ? 'secondary' : 'ghost'}
+                            className={cn(
+                              "w-full justify-start gap-3",
+                              isCollapsed && "justify-center px-0",
+                              isLocked && "opacity-50"
+                            )}
+                            disabled={isLocked}
+                          >
+                            <Icon className="h-4 w-4 shrink-0" />
+                            {!isCollapsed && (
+                              <>
+                                <span className="flex-1 text-left">{item.title}</span>
+                                <div className="flex items-center gap-1">
+                                  {isLocked && <Lock className="h-3 w-3" />}
+                                  {item.badge && !isLocked && (
+                                    <Badge variant="secondary" className="ml-auto">
+                                      {item.badge}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </>
+                            )}
+                          </Button>
+                        </Link>
+                      </TooltipTrigger>
+                      {isCollapsed && (
+                        <TooltipContent side="right">
+                          {item.title}
+                          {isLocked && ' (Requires Account)'}
+                          {item.badge && !isLocked && ` (${item.badge})`}
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                  </TooltipProvider>
+                )
+              })}
+            </nav>
+
+            {/* Recent Documents Section */}
+            {!isCollapsed && safeRecentDocuments.length > 0 && (
+              <div className="mt-6">
                 <button
                   onClick={() => toggleSection('recent')}
-                  className="flex items-center justify-between w-full p-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                  className="flex w-full items-center justify-between px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
                 >
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-2" />
-                    Recent
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {recentDocuments.length}
-                    </Badge>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    <span>Recent</span>
                   </div>
                   {expandedSections.includes('recent') ? (
-                    <ChevronDown className="h-3 w-3" />
+                    <ChevronDown className="h-4 w-4" />
                   ) : (
-                    <ChevronRight className="h-3 w-3" />
+                    <ChevronRight className="h-4 w-4" />
                   )}
                 </button>
-                
                 {expandedSections.includes('recent') && (
-                  <div className="ml-6 space-y-1 mt-2">
-                    {recentDocuments.slice(0, 5).map((doc) => (
+                  <div className="mt-2 space-y-1">
+                    {safeRecentDocuments.slice(0, 5).map((d) => (
                       <button
-                        key={doc.id}
-                        onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
+                        key={d.id}
+                        onClick={() => handleSelectDocument(d.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
                       >
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          {getDocTypeIcon(doc.type)}
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-foreground truncate group-hover:text-primary">
-                              {doc.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {formatRelativeDate(doc.updatedAt)}
-                            </div>
-                          </div>
-                        </div>
+                        {getDocTypeIcon(d.type)}
+                        <span className="flex-1 truncate text-left text-foreground">
+                          {d.title || 'Untitled'}
+                        </span>
                       </button>
                     ))}
-                    {recentDocuments.length === 0 && (
-                      <p className="text-xs text-muted-foreground ml-2">No recent documents</p>
-                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Favorites Section */}
+            {!isCollapsed && safeFavoriteDocuments.length > 0 && (
+              <div className="mt-4">
+                <button
+                  onClick={() => toggleSection('favorites')}
+                  className="flex w-full items-center justify-between px-2 py-1 text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  <div className="flex items-center gap-2">
+                    <Star className="h-4 w-4" />
+                    <span>Favorites</span>
+                  </div>
+                  {expandedSections.includes('favorites') ? (
+                    <ChevronDown className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
+                {expandedSections.includes('favorites') && (
+                  <div className="mt-2 space-y-1">
+                    {safeFavoriteDocuments.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => handleSelectDocument(d.id)}
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                      >
+                        {getDocTypeIcon(d.type)}
+                        <span className="flex-1 truncate text-left text-foreground">
+                          {d.title || 'Untitled'}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
             )}
 
             {/* Documents by Type */}
-            {Object.entries(documentsByType).map(([type, docs]) => (
-              <div key={type} className="px-4 py-2">
-                <button
-                  onClick={() => toggleSection(type)}
-                  className="flex items-center justify-between w-full p-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <div className="flex items-center">
-                    <Folder className="h-4 w-4 mr-2" />
-                    {type.charAt(0).toUpperCase() + type.slice(1)}
-                    <Badge variant="outline" className="ml-2 text-xs">
-                      {docs.length}
-                    </Badge>
-                  </div>
-                  {expandedSections.includes(type) ? (
-                    <ChevronDown className="h-3 w-3" />
-                  ) : (
-                    <ChevronRight className="h-3 w-3" />
-                  )}
-                </button>
-                
-                {expandedSections.includes(type) && (
-                  <div className="ml-6 space-y-1 mt-2">
-                    {docs.slice(0, 3).map((doc) => (
+            {!isCollapsed && Object.keys(documentsByType).length > 0 && (
+              <div className="mt-4">
+                <div className="px-2 py-1 text-sm font-medium text-muted-foreground">
+                  By Type
+                </div>
+                {Object.entries(documentsByType).map(([type, docs]) => {
+                  const config = DOC_TYPE_CONFIG[type as keyof typeof DOC_TYPE_CONFIG] || DOC_TYPE_CONFIG.general
+                  return (
+                    <div key={type} className="mt-2">
                       <button
-                        key={doc.id}
-                        onClick={() => handleSelectDocument(doc.id)}
-                        className="flex items-center justify-between w-full p-2 text-sm hover:bg-accent rounded-md transition-colors group"
+                        onClick={() => toggleSection(type)}
+                        className="flex w-full items-center justify-between px-2 py-1 text-sm hover:bg-accent rounded-md"
                       >
-                        <div className="flex items-center space-x-2 min-w-0 flex-1">
-                          <div className="min-w-0 flex-1">
-                            <div className="font-medium text-foreground truncate group-hover:text-primary">
-                              {doc.title}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {doc.wordCount} words
-                            </div>
-                          </div>
+                        <div className="flex items-center gap-2">
+                          {getDocTypeIcon(type)}
+                          <span className="text-foreground">{config.label}</span>
+                          <Badge variant="secondary" className="ml-auto">
+                            {docs.length}
+                          </Badge>
                         </div>
+                        {expandedSections.includes(type) ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
                       </button>
-                    ))}
-                    {docs.length > 3 && (
-                      <Link href={`/documents?type=${type}`} className="block ml-2">
-                        <Button variant="ghost" size="sm" className="text-xs">
-                          View all {docs.length} documents
-                        </Button>
-                      </Link>
-                    )}
+                      {expandedSections.includes(type) && (
+                        <div className="ml-6 mt-1 space-y-1">
+                          {docs.map((d) => (
+                            <button
+                              key={d.id}
+                              onClick={() => handleSelectDocument(d.id)}
+                              className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-accent"
+                            >
+                              <span className="flex-1 truncate text-left text-foreground">
+                                {d.title || 'Untitled'}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {formatRelativeDate(d.updatedAt)}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* User Profile Section */}
+          <div className="border-t border-border p-4">
+            {!isCollapsed ? (
+              <div className="space-y-2">
+                <div className="flex items-center gap-3 px-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                    <User className="h-4 w-4 text-primary" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="truncate text-sm font-medium text-foreground">
+                      {isGuestMode ? 'Guest User' : (user?.name || 'User')}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {isGuestMode ? 'Limited Access' : (user?.email || '')}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {isGuestMode ? (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => router.push('/register')}
+                    >
+                      Sign Up Free
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => router.push('/settings')}
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
+                        Settings
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {!isGuestMode && (
+                  <>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => router.push('/settings')}
+                          >
+                            <Settings className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Settings</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleLogout}
+                          >
+                            <LogOut className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right">Logout</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </>
                 )}
               </div>
-            ))}
-          </div>
-        )}
-        
-        {/* Settings and Logout at Bottom */}
-        <div className="border-t p-2 space-y-1">
-          <Link href="/settings">
-            <Button
-              variant="ghost"
-              className={cn(
-                "w-full",
-                isCollapsed ? "justify-center" : "justify-start"
-              )}
-              size="sm"
-              title={isCollapsed ? "Settings" : undefined}
-            >
-              <Settings className="h-4 w-4" />
-              {!isCollapsed && <span className="ml-2">Settings</span>}
-            </Button>
-          </Link>
-          
-          <Button
-            onClick={handleLogout}
-            variant="ghost"
-            className={cn(
-              "w-full",
-              isCollapsed ? "justify-center" : "justify-start"
             )}
-            size="sm"
-            title={isCollapsed ? "Logout" : undefined}
-          >
-            <LogOut className="h-4 w-4" />
-            {!isCollapsed && <span className="ml-2">Logout</span>}
-          </Button>
+          </div>
         </div>
 
-        {/* Resize Handle - Only show when not collapsed */}
+        {/* Resize Handle */}
         {!isCollapsed && (
           <div
             className={cn(
-              "absolute top-0 right-0 w-1 h-full cursor-col-resize hover:bg-primary transition-colors group",
+              "absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-primary/50 transition-colors",
               isResizing && "bg-primary"
             )}
             onMouseDown={handleMouseDown}
-          >
-            <div className="absolute inset-y-0 -left-1 -right-1" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-              <div className="w-1 h-12 bg-primary rounded-full shadow-lg" />
-            </div>
-          </div>
+          />
         )}
       </div>
 
@@ -541,3 +590,5 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
     </>
   )
 }
+
+export default DashboardSidebar

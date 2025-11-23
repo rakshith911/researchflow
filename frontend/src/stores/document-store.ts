@@ -1,463 +1,183 @@
 // frontend/src/stores/document-store.ts
 import { create } from 'zustand'
 import { apiClient } from '@/lib/api-client'
-import { toast } from '@/components/ui/use-toast'
 
-interface Document {
+const GUEST_STORAGE_KEY = 'researchflow_guest_documents'
+
+export interface Document {
   id: string
   title: string
   content: string
   type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general'
   tags: string[]
-  linkedDocuments: string[]
-  collaborators: string[]
-  createdAt: Date | string  // Allow both Date and string
-  updatedAt: Date | string  // Allow both Date and string
-  lastAccessedAt?: Date | string  // Allow both Date and string
-  version: number
-  wordCount: number
-  readingTime: number
+  createdAt: string
+  updatedAt: string
+  userId?: string
   isFavorite?: boolean
-}
-
-interface DocumentSettings {
-  showPreview: boolean
-  splitView: boolean
-  theme: 'light' | 'dark' | 'auto'
-  fontSize: number
-  lineHeight: number
-  wordWrap: boolean
-  showLineNumbers: boolean
+  version?: number
+  wordCount?: number
+  readingTime?: number
 }
 
 interface AutoSaveState {
-  lastSaved: string
-  hasUnsavedChanges: boolean
   isAutoSaving: boolean
+  hasUnsavedChanges: boolean
+  lastSaved: string
 }
 
 interface DocumentStore {
-  currentDocument: Document | null
   documents: Document[]
   favoriteDocuments: Document[]
   recentDocuments: Document[]
-  settings: DocumentSettings
-  autoSaveState: AutoSaveState
-  isPreviewVisible: boolean
-  isSplitView: boolean
-  isFullscreen: boolean
+  currentDocument: Document | null
   isLoading: boolean
-  selectedDocumentIds: string[]
+  error: string | null
+  autoSaveState: AutoSaveState
   
-  setCurrentDocument: (document: Document | null) => void
+  // Actions
+  loadDocuments: () => Promise<void>
+  loadDocument: (id: string) => Promise<void>
+  loadFavorites: () => Promise<void>
+  loadRecentDocuments: () => Promise<void>
+  createDocument: (type: Document['type'], template?: string) => Promise<void>
+  updateDocument: (id: string, updates: Partial<Document>) => Promise<void>
   updateDocumentContent: (content: string) => void
   updateDocumentTitle: (title: string) => void
   saveDocument: () => Promise<void>
-  createDocument: (type: Document['type'], template?: string) => Promise<Document>
-  loadDocument: (id: string) => Promise<void>
   deleteDocument: (id: string) => Promise<void>
-  loadAllDocuments: () => Promise<void>
-  renameDocument: (id: string, title: string) => Promise<void>
-  duplicateDocument: (id: string) => Promise<Document>
+  setCurrentDocument: (doc: Document | null) => void
   toggleFavorite: (id: string) => Promise<void>
-  loadFavorites: () => Promise<void>
-  loadRecentDocuments: () => Promise<void>
-  searchDocuments: (query: string, options?: { type?: string }) => Promise<Document[]>
-  bulkDelete: (ids: string[]) => Promise<void>
-  bulkAddTags: (ids: string[], tags: string[]) => Promise<void>
-  bulkRemoveTags: (ids: string[], tags: string[]) => Promise<void>
-  toggleDocumentSelection: (id: string) => void
-  selectAllDocuments: () => void
-  clearSelection: () => void
-  togglePreview: () => void
-  toggleSplitView: () => void
-  toggleFullscreen: () => void
-  updateSettings: (settings: Partial<DocumentSettings>) => void
-  setAutoSaveState: (state: Partial<AutoSaveState>) => void
+  
+  // Guest mode helpers
+  getGuestDocuments: () => Document[]
+  saveGuestDocument: (doc: Document) => void
+  deleteGuestDocument: (id: string) => void
+  clearGuestDocuments: () => void
 }
 
-function getDefaultTemplate(type: Document['type']): string {
-  const templates = {
-    research: `# Research Document\n\n## Abstract\nBrief summary...\n\n## Introduction\nBackground...\n\n## Methodology\nMethods...\n\n## Results\nFindings...\n\n## Conclusion\nSummary...`,
-    engineering: `# Technical Specification\n\n## Overview\nProject description...\n\n## Requirements\n- Requirement 1\n- Requirement 2\n\n## Architecture\nSystem design...\n\n## Implementation\n\`\`\`typescript\n// Code\n\`\`\``,
-    healthcare: `# Clinical Protocol\n\n## Patient Information\n- Patient ID:\n- Date:\n\n## Assessment\nFindings...\n\n## Plan\nTreatment...\n\n## Follow-up\nNext steps...`,
-    meeting: `# Meeting Notes\n**Date:** ${new Date().toLocaleDateString()}\n**Attendees:**\n\n## Agenda\n1. Topic 1\n2. Topic 2\n\n## Action Items\n- [ ] Task 1\n- [ ] Task 2`,
-    general: `# Document Title\n\nStart writing...\n\n## Section 1\n\n## Section 2`
+// LocalStorage helpers
+const loadFromLocalStorage = (): Document[] => {
+  if (typeof window === 'undefined') return []
+  
+  try {
+    const data = localStorage.getItem(GUEST_STORAGE_KEY)
+    return data ? JSON.parse(data) : []
+  } catch (error) {
+    console.error('Failed to load from localStorage:', error)
+    return []
   }
-  return templates[type] || templates.general
+}
+
+const saveToLocalStorage = (docs: Document[]) => {
+  if (typeof window === 'undefined') return
+  
+  try {
+    localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(docs))
+  } catch (error) {
+    console.error('Failed to save to localStorage:', error)
+  }
+}
+
+// Helper to calculate word count and reading time
+const calculateStats = (content: string) => {
+  const words = content.trim().split(/\s+/).filter(w => w.length > 0)
+  const wordCount = words.length
+  const readingTime = Math.ceil(wordCount / 200) // 200 words per minute
+  return { wordCount, readingTime }
 }
 
 export const useDocumentStore = create<DocumentStore>((set, get) => ({
-  currentDocument: null,
   documents: [],
   favoriteDocuments: [],
   recentDocuments: [],
-  selectedDocumentIds: [],
-  settings: {
-    showPreview: true,
-    splitView: true,
-    theme: 'light',
-    fontSize: 14,
-    lineHeight: 1.6,
-    wordWrap: true,
-    showLineNumbers: true,
-  },
-  autoSaveState: {
-    lastSaved: new Date().toISOString(),
-    hasUnsavedChanges: false,
-    isAutoSaving: false,
-  },
-  isPreviewVisible: true,
-  isSplitView: true,
-  isFullscreen: false,
+  currentDocument: null,
   isLoading: false,
-
-  setCurrentDocument: (document) => set({ currentDocument: document }),
-  
-  updateDocumentContent: (content) => {
-    const { currentDocument } = get()
-    if (!currentDocument) return
-    
-    const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length
-    const readingTime = Math.ceil(wordCount / 200)
-    
-    set({
-      currentDocument: {
-        ...currentDocument,
-        content,
-        wordCount,
-        readingTime,
-        updatedAt: new Date().toISOString(),
-      },
-      autoSaveState: {
-        ...get().autoSaveState,
-        hasUnsavedChanges: true,
-      }
-    })
+  error: null,
+  autoSaveState: {
+    isAutoSaving: false,
+    hasUnsavedChanges: false,
+    lastSaved: new Date().toISOString()
   },
-  
-  updateDocumentTitle: (title) => {
-    const { currentDocument } = get()
-    if (!currentDocument) return
-    
-    set({
-      currentDocument: {
-        ...currentDocument,
-        title,
-        updatedAt: new Date().toISOString(),
-      },
-      autoSaveState: {
-        ...get().autoSaveState,
-        hasUnsavedChanges: true,
-      }
-    })
-  },
-  
-  saveDocument: async () => {
-    const { currentDocument } = get()
-    if (!currentDocument) return
-    
-    set({ autoSaveState: { ...get().autoSaveState, isAutoSaving: true } })
-    
-    try {
-      const result = await apiClient.put<any>(
-        `/api/documents/${currentDocument.id}`,
-        currentDocument
-      )
-      
-      if (result.success) {
-        set((state) => ({
-          currentDocument: result.data,
-          documents: state.documents.map(doc => 
-            doc.id === result.data.id ? result.data : doc
-          ),
-          autoSaveState: {
-            lastSaved: new Date().toISOString(),
-            hasUnsavedChanges: false,
-            isAutoSaving: false,
-          }
-        }))
 
-        toast({
-          title: "Document saved",
-          description: "Your changes have been saved successfully.",
-          variant: "success",
-        })
-
-        const { useKnowledgeGraphStore } = await import('./knowledge-graph-store')
-        const knowledgeGraphStore = useKnowledgeGraphStore.getState()
-        knowledgeGraphStore.refreshGraph()
-      } else {
-        throw new Error(result.error || 'Failed to save document')
-      }
-    } catch (error) {
-      console.error('Failed to save document:', error)
-      set({ autoSaveState: { ...get().autoSaveState, isAutoSaving: false } })
-      
-      toast({
-        title: "Save failed",
-        description: "Failed to save document. Please try again.",
-        variant: "destructive",
+  // Load all documents
+  loadDocuments: async () => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      set({ 
+        documents: guestDocs,
+        recentDocuments: guestDocs.slice(0, 5),
+        favoriteDocuments: guestDocs.filter(doc => doc.isFavorite),
+        isLoading: false 
       })
+      return
     }
-  },
-  
-  createDocument: async (type, template) => {
-    set({ isLoading: true })
-    
+
+    set({ isLoading: true, error: null })
     try {
-      const result = await apiClient.post<any>('/api/documents', {
-        title: 'Untitled Document',
-        content: template || getDefaultTemplate(type),
-        type: type,
-      })
+      const result = await apiClient.get<Document[]>('/api/documents')
       
-      if (result.success) {
-        const newDocument = result.data
-        set({
-          currentDocument: newDocument,
-          documents: [...get().documents, newDocument],
-          isLoading: false,
-          autoSaveState: {
-            lastSaved: new Date().toISOString(),
-            hasUnsavedChanges: false,
-            isAutoSaving: false,
-          }
+      if (result.success && result.data) {
+        set({ 
+          documents: result.data,
+          isLoading: false 
         })
-
-        toast({
-          title: "Document created",
-          description: `New ${type} document created successfully.`,
-          variant: "success",
-        })
-
-        const { useKnowledgeGraphStore } = await import('./knowledge-graph-store')
-        const knowledgeGraphStore = useKnowledgeGraphStore.getState()
-        knowledgeGraphStore.refreshGraph()
-
-        return newDocument
-      } else {
-        throw new Error(result.error || 'Failed to create document')
-      }
-    } catch (error) {
-      console.error('Failed to create document:', error)
-      set({ isLoading: false })
-      
-      toast({
-        title: "Creation failed",
-        description: "Failed to create document. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
-  },
-  
-  loadDocument: async (id: string) => {
-    set({ isLoading: true })
-    
-    try {
-      const result = await apiClient.get<any>(`/api/documents/${id}`)
-      
-      if (result.success) {
-        set({
-          currentDocument: result.data,
-          isLoading: false,
-          autoSaveState: {
-            lastSaved: new Date(result.data.updatedAt),
-            hasUnsavedChanges: false,
-            isAutoSaving: false,
-          }
-        })
-      } else {
-        throw new Error(result.error || 'Failed to load document')
-      }
-    } catch (error) {
-      console.error('Failed to load document:', error)
-      set({ isLoading: false })
-      
-      toast({
-        title: "Load failed",
-        description: "Failed to load document. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
-  },
-  
-  deleteDocument: async (id: string) => {
-    try {
-      const result = await apiClient.delete<any>(`/api/documents/${id}`)
-      
-      if (result.success) {
-        set({
-          documents: get().documents.filter(doc => doc.id !== id),
-          favoriteDocuments: get().favoriteDocuments.filter(doc => doc.id !== id),
-          recentDocuments: get().recentDocuments.filter(doc => doc.id !== id),
-          currentDocument: get().currentDocument?.id === id ? null : get().currentDocument,
-          selectedDocumentIds: get().selectedDocumentIds.filter(docId => docId !== id),
-        })
-
-        toast({
-          title: "Document deleted",
-          description: "Document has been permanently deleted.",
-        })
-
-        const { useKnowledgeGraphStore } = await import('./knowledge-graph-store')
-        const knowledgeGraphStore = useKnowledgeGraphStore.getState()
-        knowledgeGraphStore.refreshGraph()
-      } else {
-        throw new Error(result.error || 'Failed to delete document')
-      }
-    } catch (error) {
-      console.error('Failed to delete document:', error)
-      
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete document. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
-  },
-  
-  loadAllDocuments: async () => {
-    const state = get()
-    if (state.isLoading) return
-    
-    set({ isLoading: true })
-    
-    try {
-      const result = await apiClient.get<any>('/api/documents')
-      
-      if (result.success) {
-        set({ documents: result.data, isLoading: false })
-      } else {
-        console.error('Failed to load documents:', result.error)
-        set({ documents: [], isLoading: false })
       }
     } catch (error) {
       console.error('Failed to load documents:', error)
-      set({ documents: [], isLoading: false })
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to load documents',
+        isLoading: false 
+      })
     }
   },
 
-  renameDocument: async (id: string, title: string) => {
-    try {
-      const result = await apiClient.renameDocument(id, title)
-      
-      if (result.success) {
-        set((state) => ({
-          documents: state.documents.map(doc => 
-            doc.id === id ? { ...doc, title, updatedAt: new Date().toISOString() } : doc
-          ),
-          currentDocument: state.currentDocument?.id === id 
-            ? { ...state.currentDocument, title, updatedAt: new Date().toISOString() }
-            : state.currentDocument
-        }))
+  // Load single document
+  loadDocument: async (id: string) => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      const doc = guestDocs.find(d => d.id === id)
+      if (doc) {
+        set({ currentDocument: doc })
+      }
+      return
+    }
 
-        toast({
-          title: "Document renamed",
-          description: `Document renamed to "${title}".`,
-          variant: "success",
+    set({ isLoading: true, error: null })
+    try {
+      const result = await apiClient.get<Document>(`/api/documents/${id}`)
+      
+      if (result.success && result.data) {
+        set({ 
+          currentDocument: result.data,
+          isLoading: false 
         })
-      } else {
-        throw new Error(result.error || 'Failed to rename document')
       }
     } catch (error) {
-      console.error('Failed to rename document:', error)
-      
-      toast({
-        title: "Rename failed",
-        description: "Failed to rename document. Please try again.",
-        variant: "destructive",
+      console.error('Failed to load document:', error)
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to load document',
+        isLoading: false 
       })
-      
-      throw error
     }
   },
 
-  duplicateDocument: async (id: string) => {
-    try {
-      const result = await apiClient.duplicateDocument(id)
-      
-      if (result.success) {
-        const duplicated = result.data
-        set((state) => ({
-          documents: [...state.documents, duplicated]
-        }))
-
-        toast({
-          title: "Document duplicated",
-          description: `"${duplicated.title}" has been created.`,
-          variant: "success",
-        })
-
-        return duplicated
-      } else {
-        throw new Error(result.error || 'Failed to duplicate document')
-      }
-    } catch (error) {
-      console.error('Failed to duplicate document:', error)
-      
-      toast({
-        title: "Duplicate failed",
-        description: "Failed to duplicate document. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
-  },
-
-  toggleFavorite: async (id: string) => {
-    try {
-      const result = await apiClient.toggleFavorite(id)
-      
-      if (result.success) {
-        const updated = result.data
-        const isFavorited = updated.isFavorite
-        
-        set((state) => ({
-          documents: state.documents.map(doc => 
-            doc.id === id ? updated : doc
-          ),
-          currentDocument: state.currentDocument?.id === id 
-            ? updated
-            : state.currentDocument
-        }))
-
-        toast({
-          title: isFavorited ? "Added to favorites" : "Removed from favorites",
-          description: isFavorited 
-            ? "Document has been starred."
-            : "Document has been unstarred.",
-          variant: "success",
-        })
-        
-        get().loadFavorites()
-      } else {
-        throw new Error(result.error || 'Failed to toggle favorite')
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-      
-      toast({
-        title: "Operation failed",
-        description: "Failed to update favorite status.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
-  },
-
+  // Load favorite documents
   loadFavorites: async () => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      set({ favoriteDocuments: guestDocs.filter(doc => doc.isFavorite) })
+      return
+    }
+
     try {
-      const result = await apiClient.getFavorites()
-      if (result.success) {
+      const result = await apiClient.get<Document[]>('/api/documents/favorites')
+      if (result.success && result.data) {
         set({ favoriteDocuments: result.data })
       }
     } catch (error) {
@@ -465,10 +185,22 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     }
   },
 
+  // Load recent documents
   loadRecentDocuments: async () => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      const sorted = [...guestDocs].sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      )
+      set({ recentDocuments: sorted.slice(0, 5) })
+      return
+    }
+
     try {
-      const result = await apiClient.getRecentDocuments(10)
-      if (result.success) {
+      const result = await apiClient.get<Document[]>('/api/documents/recent')
+      if (result.success && result.data) {
         set({ recentDocuments: result.data })
       }
     } catch (error) {
@@ -476,137 +208,330 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     }
   },
 
-  searchDocuments: async (query: string, options?: { type?: string }): Promise<Document[]> => {
+  // Update document content (immediate, local only)
+  updateDocumentContent: (content: string) => {
+    const current = get().currentDocument
+    if (!current) return
+
+    const stats = calculateStats(content)
+    const updatedDoc = { 
+      ...current, 
+      content,
+      ...stats,
+      updatedAt: new Date().toISOString()
+    }
+
+    set({ 
+      currentDocument: updatedDoc,
+      autoSaveState: {
+        ...get().autoSaveState,
+        hasUnsavedChanges: true
+      }
+    })
+  },
+
+  // Update document title (immediate, local only)
+  updateDocumentTitle: (title: string) => {
+    const current = get().currentDocument
+    if (!current) return
+
+    const updatedDoc = { 
+      ...current, 
+      title,
+      updatedAt: new Date().toISOString()
+    }
+
+    set({ 
+      currentDocument: updatedDoc,
+      autoSaveState: {
+        ...get().autoSaveState,
+        hasUnsavedChanges: true
+      }
+    })
+  },
+
+  // Save current document
+  saveDocument: async () => {
+    const current = get().currentDocument
+    if (!current) return
+
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+
+    set({ 
+      autoSaveState: {
+        ...get().autoSaveState,
+        isAutoSaving: true
+      }
+    })
+
+    if (isGuest) {
+      // Save to localStorage
+      const guestDocs = loadFromLocalStorage()
+      const index = guestDocs.findIndex(d => d.id === current.id)
+      
+      if (index >= 0) {
+        guestDocs[index] = current
+      } else {
+        guestDocs.push(current)
+      }
+      
+      saveToLocalStorage(guestDocs)
+      
+      set({ 
+        documents: guestDocs,
+        autoSaveState: {
+          isAutoSaving: false,
+          hasUnsavedChanges: false,
+          lastSaved: new Date().toISOString()
+        }
+      })
+      return
+    }
+
+    // Save to API
     try {
-      const result = await apiClient.searchDocuments(query, options)
+      const result = await apiClient.put<Document>(`/api/documents/${current.id}`, {
+        title: current.title,
+        content: current.content,
+        tags: current.tags
+      })
+      
       if (result.success && result.data) {
-        return result.data as Document[]
+        set({
+          currentDocument: result.data,
+          documents: get().documents.map(d => d.id === current.id ? result.data! : d),
+          autoSaveState: {
+            isAutoSaving: false,
+            hasUnsavedChanges: false,
+            lastSaved: new Date().toISOString()
+          }
+        })
       }
-      return []
     } catch (error) {
-      console.error('Failed to search documents:', error)
-      return []
+      console.error('Failed to save document:', error)
+      set({ 
+        autoSaveState: {
+          ...get().autoSaveState,
+          isAutoSaving: false
+        }
+      })
     }
   },
 
-  bulkDelete: async (ids: string[]) => {
+  // Toggle favorite status
+  toggleFavorite: async (id: string) => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      const docIndex = guestDocs.findIndex(d => d.id === id)
+      if (docIndex >= 0) {
+        guestDocs[docIndex].isFavorite = !guestDocs[docIndex].isFavorite
+        saveToLocalStorage(guestDocs)
+        set({ 
+          documents: guestDocs,
+          favoriteDocuments: guestDocs.filter(doc => doc.isFavorite)
+        })
+      }
+      return
+    }
+
     try {
-      const result = await apiClient.bulkDeleteDocuments(ids)
+      const result = await apiClient.post<Document>(`/api/documents/${id}/favorite`, {})
+      if (result.success && result.data) {
+        const updatedDoc = result.data
+        set({
+          documents: get().documents.map(d => d.id === id ? updatedDoc : d),
+          favoriteDocuments: updatedDoc.isFavorite 
+            ? [...get().favoriteDocuments, updatedDoc]
+            : get().favoriteDocuments.filter(d => d.id !== id)
+        })
+      }
+    } catch (error) {
+      console.error('Failed to toggle favorite:', error)
+    }
+  },
+
+  // Create a new document
+  createDocument: async (type: Document['type'], template?: string) => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    const newDoc: Document = {
+      id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      title: 'Untitled Document',
+      content: template || '',
+      type,
+      tags: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isFavorite: false,
+      version: 1,
+      wordCount: 0,
+      readingTime: 0
+    }
+
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      guestDocs.unshift(newDoc)
+      saveToLocalStorage(guestDocs)
+      set({ 
+        documents: guestDocs,
+        currentDocument: newDoc,
+        recentDocuments: guestDocs.slice(0, 5)
+      })
+      return
+    }
+
+    set({ isLoading: true, error: null })
+    try {
+      const result = await apiClient.post<Document>('/api/documents', { type, content: template })
+      
+      if (result.success && result.data) {
+        set({
+          documents: [result.data, ...get().documents],
+          currentDocument: result.data,
+          isLoading: false
+        })
+      }
+    } catch (error) {
+      console.error('Failed to create document:', error)
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to create document',
+        isLoading: false 
+      })
+    }
+  },
+
+  // Update a document
+  updateDocument: async (id: string, updates: Partial<Document>) => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage()
+      const docIndex = guestDocs.findIndex(d => d.id === id)
+      
+      if (docIndex >= 0) {
+        guestDocs[docIndex] = { 
+          ...guestDocs[docIndex], 
+          ...updates, 
+          updatedAt: new Date().toISOString() 
+        }
+        saveToLocalStorage(guestDocs)
+        set({ 
+          documents: guestDocs,
+          currentDocument: get().currentDocument?.id === id 
+            ? guestDocs[docIndex] 
+            : get().currentDocument,
+          recentDocuments: [...guestDocs].sort((a, b) => 
+            new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          ).slice(0, 5)
+        })
+      }
+      return
+    }
+
+    set({ isLoading: true, error: null })
+    try {
+      const result = await apiClient.put<Document>(`/api/documents/${id}`, updates)
+      
+      if (result.success && result.data) {
+        set({
+          documents: get().documents.map(d => d.id === id ? result.data! : d),
+          currentDocument: get().currentDocument?.id === id ? result.data : get().currentDocument,
+          isLoading: false
+        })
+      }
+    } catch (error) {
+      console.error('Failed to update document:', error)
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to update document',
+        isLoading: false 
+      })
+    }
+  },
+
+  // Delete a document
+  deleteDocument: async (id: string) => {
+    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    
+    if (isGuest) {
+      const guestDocs = loadFromLocalStorage().filter(d => d.id !== id)
+      saveToLocalStorage(guestDocs)
+      set({ 
+        documents: guestDocs,
+        currentDocument: get().currentDocument?.id === id ? null : get().currentDocument,
+        recentDocuments: guestDocs.slice(0, 5),
+        favoriteDocuments: guestDocs.filter(doc => doc.isFavorite)
+      })
+      return
+    }
+
+    set({ isLoading: true, error: null })
+    try {
+      const result = await apiClient.delete<any>(`/api/documents/${id}`)
       
       if (result.success) {
-        set((state) => ({
-          documents: state.documents.filter(doc => !ids.includes(doc.id)),
-          favoriteDocuments: state.favoriteDocuments.filter(doc => !ids.includes(doc.id)),
-          recentDocuments: state.recentDocuments.filter(doc => !ids.includes(doc.id)),
-          selectedDocumentIds: [],
-          currentDocument: ids.includes(state.currentDocument?.id || '') 
-            ? null 
-            : state.currentDocument
-        }))
-
-        toast({
-          title: "Documents deleted",
-          description: `${ids.length} document(s) have been deleted.`,
+        set({
+          documents: get().documents.filter(d => d.id !== id),
+          currentDocument: get().currentDocument?.id === id ? null : get().currentDocument,
+          isLoading: false
         })
-      } else {
-        throw new Error(result.error || 'Failed to delete documents')
       }
     } catch (error) {
-      console.error('Failed to bulk delete:', error)
-      
-      toast({
-        title: "Delete failed",
-        description: "Failed to delete documents. Please try again.",
-        variant: "destructive",
+      console.error('Failed to delete document:', error)
+      set({ 
+        error: error instanceof Error ? error.message : 'Failed to delete document',
+        isLoading: false 
       })
-      
-      throw error
     }
   },
 
-  bulkAddTags: async (ids: string[], tags: string[]) => {
-    try {
-      const result = await apiClient.bulkUpdateTags(ids, tags, 'add')
-      
-      if (result.success) {
-        get().loadAllDocuments()
+  // Set current document
+  setCurrentDocument: (doc: Document | null) => {
+    set({ currentDocument: doc })
+  },
 
-        toast({
-          title: "Tags added",
-          description: `Tags added to ${ids.length} document(s).`,
-          variant: "success",
-        })
-      } else {
-        throw new Error(result.error || 'Failed to add tags')
-      }
-    } catch (error) {
-      console.error('Failed to bulk add tags:', error)
-      
-      toast({
-        title: "Operation failed",
-        description: "Failed to add tags. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
+  // Guest mode helpers
+  getGuestDocuments: () => {
+    return loadFromLocalStorage()
+  },
+
+  saveGuestDocument: (doc: Document) => {
+    const guestDocs = loadFromLocalStorage()
+    const index = guestDocs.findIndex(d => d.id === doc.id)
+    
+    if (index >= 0) {
+      guestDocs[index] = doc
+    } else {
+      guestDocs.push(doc)
     }
+    
+    saveToLocalStorage(guestDocs)
+    set({ 
+      documents: guestDocs,
+      recentDocuments: [...guestDocs].sort((a, b) => 
+        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      ).slice(0, 5)
+    })
   },
 
-  bulkRemoveTags: async (ids: string[], tags: string[]) => {
-    try {
-      const result = await apiClient.bulkUpdateTags(ids, tags, 'remove')
-      
-      if (result.success) {
-        get().loadAllDocuments()
-
-        toast({
-          title: "Tags removed",
-          description: `Tags removed from ${ids.length} document(s).`,
-          variant: "success",
-        })
-      } else {
-        throw new Error(result.error || 'Failed to remove tags')
-      }
-    } catch (error) {
-      console.error('Failed to bulk remove tags:', error)
-      
-      toast({
-        title: "Operation failed",
-        description: "Failed to remove tags. Please try again.",
-        variant: "destructive",
-      })
-      
-      throw error
-    }
+  deleteGuestDocument: (id: string) => {
+    const guestDocs = loadFromLocalStorage().filter(d => d.id !== id)
+    saveToLocalStorage(guestDocs)
+    set({ 
+      documents: guestDocs,
+      recentDocuments: guestDocs.slice(0, 5),
+      favoriteDocuments: guestDocs.filter(doc => doc.isFavorite)
+    })
   },
 
-  toggleDocumentSelection: (id: string) => {
-    set((state) => ({
-      selectedDocumentIds: state.selectedDocumentIds.includes(id)
-        ? state.selectedDocumentIds.filter(docId => docId !== id)
-        : [...state.selectedDocumentIds, id]
-    }))
-  },
-
-  selectAllDocuments: () => {
-    set((state) => ({
-      selectedDocumentIds: state.documents.map(doc => doc.id)
-    }))
-  },
-
-  clearSelection: () => {
-    set({ selectedDocumentIds: [] })
-  },
-  
-  togglePreview: () => set({ isPreviewVisible: !get().isPreviewVisible }),
-  toggleSplitView: () => set({ isSplitView: !get().isSplitView }),
-  toggleFullscreen: () => set({ isFullscreen: !get().isFullscreen }),
-  
-  updateSettings: (newSettings) => set({
-    settings: { ...get().settings, ...newSettings }
-  }),
-  
-  setAutoSaveState: (state) => set({
-    autoSaveState: { ...get().autoSaveState, ...state }
-  }),
+  clearGuestDocuments: () => {
+    localStorage.removeItem(GUEST_STORAGE_KEY)
+    set({ 
+      documents: [], 
+      currentDocument: null,
+      recentDocuments: [],
+      favoriteDocuments: []
+    })
+  }
 }))

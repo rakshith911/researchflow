@@ -1,7 +1,9 @@
-// frontend/src/stores/settings-store.ts
+// ./frontend/src/stores/settings-store.ts
+
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiClient } from '@/lib/api-client'
+import { useAuthStore } from './auth-store'
 
 interface UserProfile {
   id: string
@@ -64,18 +66,45 @@ interface SettingsStore {
   clearError: () => void
 }
 
+// ✅ Default settings for guest users
+const DEFAULT_SETTINGS: UserSettings = {
+  theme: 'auto',
+  editor: {
+    fontSize: 14,
+    lineHeight: 1.6,
+    wordWrap: true,
+    showLineNumbers: true,
+    fontFamily: 'monospace'
+  },
+  autoSaveInterval: 30000,
+  showPreview: true,
+  splitView: false,
+  notifications: {
+    email: false,
+    desktop: false
+  }
+}
+
 export const useSettingsStore = create<SettingsStore>()(
   persist(
     (set, get) => ({
       // Initial state
       profile: null,
-      settings: null,
+      settings: DEFAULT_SETTINGS, // ✅ Initialize with defaults
       statistics: null,
       isLoading: false,
       error: null,
 
       // Load user profile
       loadProfile: async () => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        // ✅ FIX: Don't load if not authenticated or in guest mode
+        if (!isAuthenticated || isGuestMode) {
+          set({ profile: null, isLoading: false })
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/profile')
@@ -96,6 +125,12 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Update user profile
       updateProfile: async (updates) => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        if (!isAuthenticated || isGuestMode) {
+          throw new Error('Must be logged in to update profile')
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.put<any>('/api/settings/profile', updates)
@@ -117,6 +152,12 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Change password
       changePassword: async (currentPassword, newPassword) => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        if (!isAuthenticated || isGuestMode) {
+          throw new Error('Must be logged in to change password')
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.post<any>('/api/settings/password', {
@@ -141,6 +182,16 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Load user settings
       loadSettings: async () => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        // ✅ FIX: Don't call API if not authenticated or in guest mode
+        if (!isAuthenticated || isGuestMode) {
+          // Use persisted settings or defaults for guest users
+          const current = get().settings
+          set({ settings: current || DEFAULT_SETTINGS, isLoading: false })
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/preferences')
@@ -152,8 +203,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to load settings:', error)
+          // ✅ FIX: Don't throw, just use defaults
           set({ 
-            error: error instanceof Error ? error.message : 'Failed to load settings',
+            settings: DEFAULT_SETTINGS,
             isLoading: false 
           })
         }
@@ -161,9 +213,21 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Update user settings
       updateSettings: async (updates) => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        const currentSettings = get().settings || DEFAULT_SETTINGS
+        const newSettings = { ...currentSettings, ...updates }
+        
+        // ✅ FIX: Update locally first for immediate UI update
+        set({ settings: newSettings })
+        
+        // If authenticated and not guest, also update on server
+        if (!isAuthenticated || isGuestMode) {
+          return // Just save locally for guest users
+        }
+
         set({ isLoading: true, error: null })
         try {
-          const result = await apiClient.put<any>('/api/settings/preferences', updates)
+          const result = await apiClient.put<any>('/api/settings/preferences', newSettings)
           
           if (result.success) {
             set({ settings: result.data, isLoading: false })
@@ -172,16 +236,23 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to update settings:', error)
+          // Keep local changes even if API fails
           set({ 
             error: error instanceof Error ? error.message : 'Failed to update settings',
             isLoading: false 
           })
-          throw error
         }
       },
 
       // Load user statistics
       loadStatistics: async () => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        if (!isAuthenticated || isGuestMode) {
+          set({ statistics: null, isLoading: false })
+          return
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/statistics')
@@ -202,6 +273,12 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Export all user data
       exportData: async () => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        if (!isAuthenticated || isGuestMode) {
+          throw new Error('Must be logged in to export data')
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/export')
@@ -224,6 +301,12 @@ export const useSettingsStore = create<SettingsStore>()(
 
       // Delete user account
       deleteAccount: async (password) => {
+        const { isAuthenticated, isGuestMode } = useAuthStore.getState()
+        
+        if (!isAuthenticated || isGuestMode) {
+          throw new Error('Must be logged in to delete account')
+        }
+
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.delete<any>('/api/settings/account', {

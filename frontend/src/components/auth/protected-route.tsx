@@ -8,46 +8,71 @@ import { Loader2 } from 'lucide-react';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireAuth?: boolean; // ✅ Make auth optional (default FALSE to allow guest mode)
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children, requireAuth = false }: ProtectedRouteProps) {
   const router = useRouter();
-  const { isAuthenticated, token, checkAuth } = useAuthStore();
+  const { isAuthenticated, isGuestMode, token, checkAuth } = useAuthStore();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const verifyAuth = async () => {
-      // If no token, skip check and redirect immediately
-      if (!token) {
+      // ✅ If guest mode is active and auth not required, allow access
+      if (isGuestMode && !requireAuth) {
+        setIsChecking(false);
+        return;
+      }
+
+      // ✅ If authenticated, allow access
+      if (isAuthenticated) {
+        setIsChecking(false);
+        return;
+      }
+
+      // If no token and no guest mode, check what to do
+      if (!token && !isGuestMode) {
         setIsChecking(false);
         return;
       }
 
       // If token exists, verify it
-      await checkAuth();
+      if (token) {
+        await checkAuth();
+      }
+      
       setIsChecking(false);
     };
 
     verifyAuth();
-  }, [token]);
+  }, [token, isGuestMode, requireAuth, isAuthenticated, checkAuth]);
 
   useEffect(() => {
-    if (!isChecking && !isAuthenticated) {
+    // ✅ Only redirect if:
+    // 1. Auth is required AND
+    // 2. Not authenticated AND
+    // 3. Not in guest mode AND
+    // 4. Done checking
+    if (!isChecking && requireAuth && !isAuthenticated && !isGuestMode) {
       router.push('/login');
     }
-  }, [isChecking, isAuthenticated, router]);
+  }, [isChecking, isAuthenticated, isGuestMode, requireAuth, router]);
 
   if (isChecking) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return null;
+  // ✅ Allow access if:
+  // 1. Auth not required (guest mode allowed) OR
+  // 2. User is authenticated OR
+  // 3. User is in guest mode
+  if (!requireAuth || isAuthenticated || isGuestMode) {
+    return <>{children}</>;
   }
 
-  return <>{children}</>;
+  return null;
 }

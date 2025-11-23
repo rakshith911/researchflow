@@ -70,21 +70,19 @@ export function DocumentList({
   viewMode = 'list', 
   className 
 }: DocumentListProps) {
+  // ✅ FIXED: Only get functions that exist in the store
   const { 
     documents, 
     deleteDocument, 
-    renameDocument,
-    duplicateDocument,
+    updateDocument,  // ✅ Use this for renaming
+    createDocument,  // ✅ Use this for duplicating
     toggleFavorite,
-    bulkDelete,
-    bulkAddTags,
-    selectedDocumentIds,
-    toggleDocumentSelection,
-    selectAllDocuments,
-    clearSelection,
     currentDocument, 
     isLoading: storeIsLoading 
   } = useDocumentStore()
+  
+  // ✅ FIXED: Manage selection locally
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
   
   const [localSearchQuery, setLocalSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
@@ -99,10 +97,89 @@ export function DocumentList({
   const [isBulkOperating, setIsBulkOperating] = useState(false)
   const [operatingDocIds, setOperatingDocIds] = useState<Set<string>>(new Set())
 
+  // ✅ FIXED: Local selection management functions
+  const toggleDocumentSelection = (id: string) => {
+    setSelectedDocumentIds(prev => 
+      prev.includes(id) 
+        ? prev.filter(docId => docId !== id)
+        : [...prev, id]
+    )
+  }
+
+  const selectAllDocuments = () => {
+    setSelectedDocumentIds(filteredDocuments.map(d => d.id))
+  }
+
+  const clearSelection = () => {
+    setSelectedDocumentIds([])
+  }
+
+  // ✅ FIXED: Rename document function
+  const renameDocument = async (id: string, newTitle: string) => {
+    try {
+      await updateDocument(id, { title: newTitle })
+    } catch (error) {
+      console.error('Failed to rename document:', error)
+      throw error
+    }
+  }
+
+  // ✅ FIXED: Duplicate document function
+  const duplicateDocument = async (id: string) => {
+    const doc = (documents || []).find(d => d.id === id)
+    if (!doc) return
+    
+    try {
+      await createDocument(doc.type, doc.content)
+    } catch (error) {
+      console.error('Failed to duplicate document:', error)
+      throw error
+    }
+  }
+
+  // ✅ FIXED: Bulk delete function
+  const bulkDelete = async (ids: string[]) => {
+    setIsBulkOperating(true)
+    try {
+      for (const id of ids) {
+        await deleteDocument(id)
+      }
+      clearSelection()
+    } catch (error) {
+      console.error('Failed to bulk delete:', error)
+      throw error
+    } finally {
+      setIsBulkOperating(false)
+    }
+  }
+
+  // ✅ FIXED: Bulk add tags function
+  const bulkAddTags = async (ids: string[], tags: string[]) => {
+    setIsBulkOperating(true)
+    try {
+      const safeDocuments = documents || []
+      for (const id of ids) {
+        const doc = safeDocuments.find(d => d.id === id)
+        if (doc) {
+          const existingTags = Array.isArray(doc.tags) ? doc.tags : []
+          const newTags = Array.from(new Set([...existingTags, ...tags]))
+          await updateDocument(id, { tags: newTags })
+        }
+      }
+      clearSelection()
+    } catch (error) {
+      console.error('Failed to bulk add tags:', error)
+      throw error
+    } finally {
+      setIsBulkOperating(false)
+    }
+  }
+
   const isLoading = storeIsLoading
-  const displayDocuments = searchResults !== null ? searchResults : documents
+  const safeDocuments = documents || [] // ✅ Safe access
+  const displayDocuments = searchResults !== null ? searchResults : safeDocuments
   const documentTypes = Array.from(new Set(displayDocuments.map(d => d.type)))
-  const allTags = Array.from(new Set(displayDocuments.flatMap(d => d.tags)))
+  const allTags = Array.from(new Set(displayDocuments.flatMap(d => d.tags || [])))
 
   const filteredDocuments = useMemo(() => {
     let docs = displayDocuments
@@ -112,10 +189,10 @@ export function DocumentList({
         const matchesSearch = localSearchQuery === '' || 
           doc.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           doc.content.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
-          doc.tags.some((tag: string) => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))
+          (doc.tags || []).some((tag: string) => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))
         
         const matchesType = selectedType === 'all' || doc.type === selectedType
-        const matchesTag = selectedTag === 'all' || doc.tags.includes(selectedTag)
+        const matchesTag = selectedTag === 'all' || (doc.tags || []).includes(selectedTag)
         
         return matchesSearch && matchesType && matchesTag
       })
@@ -139,11 +216,11 @@ export function DocumentList({
 
   const getTypeColor = (type: string) => {
     const colors = {
-      research: 'bg-blue-100 text-blue-800 border-blue-200',
-      engineering: 'bg-green-100 text-green-800 border-green-200',
-      healthcare: 'bg-red-100 text-red-800 border-red-200',
-      meeting: 'bg-purple-100 text-purple-800 border-purple-200',
-      general: 'bg-gray-100 text-gray-800 border-gray-200',
+      research: 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800',
+      engineering: 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800',
+      healthcare: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-300 dark:border-red-800',
+      meeting: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800',
+      general: 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/30 dark:text-gray-300 dark:border-gray-700',
     }
     return colors[type as keyof typeof colors] || colors.general
   }
@@ -238,13 +315,10 @@ export function DocumentList({
     if (selectedDocumentIds.length === 0) return
     
     if (window.confirm(`Are you sure you want to delete ${selectedDocumentIds.length} document(s)?`)) {
-      setIsBulkOperating(true)
       try {
         await bulkDelete(selectedDocumentIds)
       } catch (error) {
         console.error('Failed to bulk delete:', error)
-      } finally {
-        setIsBulkOperating(false)
       }
     }
   }
@@ -255,16 +329,12 @@ export function DocumentList({
     const tags = bulkTagsInput.split(',').map(t => t.trim()).filter(t => t)
     if (tags.length === 0) return
     
-    setIsBulkOperating(true)
     try {
       await bulkAddTags(selectedDocumentIds, tags)
       setBulkTagsDialogOpen(false)
       setBulkTagsInput('')
-      clearSelection()
     } catch (error) {
       console.error('Failed to add tags:', error)
-    } finally {
-      setIsBulkOperating(false)
     }
   }
 
@@ -282,6 +352,23 @@ export function DocumentList({
     return (
       <div className={cn("flex flex-col h-full", className)}>
         <DocumentListSkeleton count={5} />
+      </div>
+    )
+  }
+
+  // Empty state
+  if (filteredDocuments.length === 0) {
+    return (
+      <div className={cn("flex items-center justify-center h-full", className)}>
+        <div className="text-center p-8">
+          <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-foreground mb-2">No documents found</h3>
+          <p className="text-muted-foreground">
+            {localSearchQuery || selectedType !== 'all' || selectedTag !== 'all'
+              ? 'Try adjusting your filters'
+              : 'Create your first document to get started'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -315,18 +402,20 @@ export function DocumentList({
               ))}
             </select>
             
-            <select
-              value={selectedTag}
-              onChange={(e) => setSelectedTag(e.target.value)}
-              className="px-3 py-1 border rounded-md text-sm bg-background"
-            >
-              <option value="all">All Tags</option>
-              {allTags.slice(0, 10).map(tag => (
-                <option key={tag} value={tag}>
-                  {tag}
-                </option>
-              ))}
-            </select>
+            {allTags.length > 0 && (
+              <select
+                value={selectedTag}
+                onChange={(e) => setSelectedTag(e.target.value)}
+                className="px-3 py-1 border rounded-md text-sm bg-background"
+              >
+                <option value="all">All Tags</option>
+                {allTags.slice(0, 10).map(tag => (
+                  <option key={tag} value={tag}>
+                    {tag}
+                  </option>
+                ))}
+              </select>
+            )}
             
             <select
               value={sortBy}
@@ -338,6 +427,17 @@ export function DocumentList({
               <option value="title">Title</option>
               <option value="type">Type</option>
             </select>
+
+            {filteredDocuments.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={selectAllDocuments}
+                className="ml-auto"
+              >
+                Select All
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -399,171 +499,224 @@ export function DocumentList({
                 variant="ghost"
                 size="sm"
                 onClick={clearSelection}
-                disabled={isBulkOperating}
               >
-                <X className="h-4 w-4" />
+                <X className="h-4 w-4 mr-1" />
+                Clear
               </Button>
             </div>
           </div>
         </div>
       )}
-      
+
       {/* Document List */}
-      <div className="flex-1 overflow-auto">
-        {filteredDocuments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 text-center">
-            <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold text-muted-foreground mb-2">
-              {searchResults !== null ? 'No results found' : 'No documents yet'}
-            </h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              {searchResults !== null
-                ? 'Try adjusting your search filters'
-                : 'Create your first document to get started'
-              }
-            </p>
-          </div>
-        ) : (
-          <div className="p-4 space-y-3">
-            {filteredDocuments.map((document) => {
-              const isDocOperating = isOperating(document.id)
-              
-              return (
-                <Card 
-                  key={document.id}
-                  className={cn(
-                    "cursor-pointer transition-all hover:shadow-md border-l-4",
-                    currentDocument?.id === document.id 
-                      ? "ring-2 ring-primary bg-primary/5" 
-                      : "hover:bg-muted/30",
-                    getTypeColor(document.type).split(' ')[2],
-                    isSelected(document.id) && "ring-2 ring-primary",
-                    isDocOperating && "opacity-60 pointer-events-none"
-                  )}
-                  onClick={() => !isDocOperating && onSelectDocument(document)}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center space-x-2 min-w-0 flex-1">
-                        <Checkbox
-                          checked={isSelected(document.id)}
-                          onCheckedChange={() => toggleSelection(document.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          disabled={isDocOperating}
-                        />
-                        <span className="text-lg">{getTypeIcon(document.type)}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold truncate">{document.title}</h4>
-                            {isDocOperating && (
-                              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+      <div className="flex-1 overflow-auto p-4">
+        {viewMode === 'list' ? (
+          <div className="space-y-2">
+            {filteredDocuments.map(doc => (
+              <Card
+                key={doc.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-md border",
+                  isSelected(doc.id) && "ring-2 ring-primary",
+                  currentDocument?.id === doc.id && "border-primary",
+                  isOperating(doc.id) && "opacity-50"
+                )}
+                onClick={() => !isOperating(doc.id) && onSelectDocument(doc)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-4">
+                    <Checkbox
+                      checked={isSelected(doc.id)}
+                      onCheckedChange={() => toggleSelection(doc.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={isOperating(doc.id)}
+                    />
+                    
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-4 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="font-medium text-foreground truncate flex items-center gap-2">
+                            <span>{getTypeIcon(doc.type)}</span>
+                            {doc.title || 'Untitled Document'}
+                            {doc.isFavorite && (
+                              <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                             )}
-                          </div>
-                          <Badge variant="outline" className={cn("text-xs", getTypeColor(document.type))}>
-                            {document.type}
-                          </Badge>
+                          </h3>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">
+                            {doc.content.substring(0, 150) || 'No content yet...'}
+                          </p>
                         </div>
-                        {document.isFavorite && (
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 flex-shrink-0" />
-                        )}
+                        
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                            <Button variant="ghost" size="sm" disabled={isOperating(doc.id)}>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelectDocument(doc); }}>
+                              <Eye className="h-4 w-4 mr-2" />
+                              Open
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRenameDocument(doc.id); }}>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleDuplicateDocument(doc.id, e)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={(e) => handleToggleFavorite(doc.id, e)}>
+                              <Star className="h-4 w-4 mr-2" />
+                              {doc.isFavorite ? 'Unfavorite' : 'Favorite'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={(e) => handleDeleteDocument(doc.id, e)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8"
-                            disabled={isDocOperating}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            onSelectDocument(document)
-                          }}>
-                            <Eye className="mr-2 h-4 w-4" />
-                            Open
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            handleRenameDocument(document.id)
-                          }}>
-                            <Edit className="mr-2 h-4 w-4" />
-                            Rename
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            handleDuplicateDocument(document.id, e as any)
-                          }}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Duplicate
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            handleToggleFavorite(document.id, e as any)
-                          }}>
-                            <Star className="mr-2 h-4 w-4" />
-                            {document.isFavorite ? 'Remove from favorites' : 'Add to favorites'}
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-red-600"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteDocument(document.id, e as any)
-                            }}
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                        <Badge variant="outline" className={cn("text-xs", getTypeColor(doc.type))}>
+                          {doc.type}
+                        </Badge>
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {doc.wordCount || 0} words
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-3 w-3" />
+                          {formatRelativeDate(doc.updatedAt)}
+                        </span>
+                        {doc.tags && doc.tags.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Tag className="h-3 w-3" />
+                            {(doc.tags as string[]).slice(0, 3).map((tag: string, index: number) => (
+                              <span key={`${doc.id}-tag-${index}`} className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                                {tag}
+                              </span>
+                            ))}
+                            {doc.tags.length > 3 && (
+                              <span className="text-xs">+{doc.tags.length - 3}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </CardHeader>
-                  
-                  <CardContent className="pt-0">
-                    <div className="space-y-2">
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {document.content.substring(0, 100)}...
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          // Grid View
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredDocuments.map(doc => (
+              <Card
+                key={doc.id}
+                className={cn(
+                  "cursor-pointer transition-all hover:shadow-md",
+                  isSelected(doc.id) && "ring-2 ring-primary",
+                  currentDocument?.id === doc.id && "border-primary",
+                  isOperating(doc.id) && "opacity-50"
+                )}
+                onClick={() => !isOperating(doc.id) && onSelectDocument(doc)}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <Checkbox
+                      checked={isSelected(doc.id)}
+                      onCheckedChange={() => toggleSelection(doc.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      disabled={isOperating(doc.id)}
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="sm" disabled={isOperating(doc.id)}>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelectDocument(doc); }}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Open
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleRenameDocument(doc.id); }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => handleDuplicateDocument(doc.id, e)}>
+                          <Copy className="h-4 w-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => handleToggleFavorite(doc.id, e)}>
+                          <Star className="h-4 w-4 mr-2" />
+                          {doc.isFavorite ? 'Unfavorite' : 'Favorite'}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          onClick={(e) => handleDeleteDocument(doc.id, e)}
+                          className="text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div>
+                      <h3 className="font-medium text-foreground truncate flex items-center gap-2 mb-1">
+                        <span>{getTypeIcon(doc.type)}</span>
+                        {doc.title || 'Untitled Document'}
+                        {doc.isFavorite && (
+                          <Star className="h-4 w-4 text-yellow-500 fill-yellow-500 ml-auto" />
+                        )}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-3">
+                        {doc.content.substring(0, 100) || 'No content yet...'}
                       </p>
-                      
-                      {document.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-    {document.tags.slice(0, 3).map((tag: string, index: number) => (
-      <Badge key={index} variant="secondary" className="text-xs">
-        <Tag className="w-2 h-2 mr-1" />
-        {tag}
-      </Badge>
+                    </div>
+                    
+                    <div className="flex flex-col gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center justify-between">
+                        <Badge variant="outline" className={cn("text-xs", getTypeColor(doc.type))}>
+                          {doc.type}
+                        </Badge>
+                        <span className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {doc.wordCount || 0} words
+                        </span>
+                      </div>
+                      <span className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatRelativeDate(doc.updatedAt)}
+                      </span>
+                      {doc.tags && doc.tags.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {(doc.tags as string[]).slice(0, 2).map((tag: string, index: number) => (
+                            <span key={`${doc.id}-grid-tag-${index}`} className="px-1.5 py-0.5 bg-muted rounded text-xs">
+                              {tag}
+                            </span>
                           ))}
-                          {document.tags.length > 3 && (
-                            <Badge variant="secondary" className="text-xs">
-                              +{document.tags.length - 3} more
-                            </Badge>
+                          {doc.tags.length > 2 && (
+                            <span className="text-xs">+{doc.tags.length - 2}</span>
                           )}
                         </div>
                       )}
-                      
-                      <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
-                        <div className="flex items-center space-x-3">
-                          <span className="flex items-center">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {document.readingTime} min read
-                          </span>
-                          <span>{document.wordCount} words</span>
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="w-3 h-3 mr-1" />
-                          {formatRelativeDate(document.updatedAt)}
-                        </div>
-                      </div>
                     </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
         )}
       </div>
@@ -582,23 +735,17 @@ export function DocumentList({
             onChange={(e) => setNewTitle(e.target.value)}
             placeholder="Document title"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !isRenaming) submitRename()
+              if (e.key === 'Enter') {
+                submitRename()
+              }
             }}
-            disabled={isRenaming}
           />
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setRenameDialogOpen(false)}
-              disabled={isRenaming}
-            >
+            <Button variant="outline" onClick={() => setRenameDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={submitRename} 
-              disabled={!newTitle.trim() || isRenaming}
-            >
-              {isRenaming && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={submitRename} disabled={isRenaming || !newTitle.trim()}>
+              {isRenaming ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Rename
             </Button>
           </DialogFooter>
@@ -611,7 +758,7 @@ export function DocumentList({
           <DialogHeader>
             <DialogTitle>Add Tags to Selected Documents</DialogTitle>
             <DialogDescription>
-              Enter tags separated by commas (e.g., "research, important, draft")
+              Enter tags separated by commas
             </DialogDescription>
           </DialogHeader>
           <Input
@@ -619,23 +766,17 @@ export function DocumentList({
             onChange={(e) => setBulkTagsInput(e.target.value)}
             placeholder="tag1, tag2, tag3"
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && !isBulkOperating) handleBulkAddTags()
+              if (e.key === 'Enter') {
+                handleBulkAddTags()
+              }
             }}
-            disabled={isBulkOperating}
           />
           <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setBulkTagsDialogOpen(false)}
-              disabled={isBulkOperating}
-            >
+            <Button variant="outline" onClick={() => setBulkTagsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleBulkAddTags} 
-              disabled={!bulkTagsInput.trim() || isBulkOperating}
-            >
-              {isBulkOperating && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            <Button onClick={handleBulkAddTags} disabled={isBulkOperating || !bulkTagsInput.trim()}>
+              {isBulkOperating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Add Tags
             </Button>
           </DialogFooter>
