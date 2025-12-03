@@ -33,7 +33,7 @@ interface DocumentStore {
   isLoading: boolean
   error: string | null
   autoSaveState: AutoSaveState
-  
+
   // Actions
   loadDocuments: () => Promise<void>
   loadDocument: (id: string) => Promise<void>
@@ -47,7 +47,7 @@ interface DocumentStore {
   deleteDocument: (id: string) => Promise<void>
   setCurrentDocument: (doc: Document | null) => void
   toggleFavorite: (id: string) => Promise<void>
-  
+
   // Guest mode helpers
   getGuestDocuments: () => Document[]
   saveGuestDocument: (doc: Document) => void
@@ -58,7 +58,7 @@ interface DocumentStore {
 // LocalStorage helpers
 const loadFromLocalStorage = (): Document[] => {
   if (typeof window === 'undefined') return []
-  
+
   try {
     const data = localStorage.getItem(GUEST_STORAGE_KEY)
     return data ? JSON.parse(data) : []
@@ -70,7 +70,7 @@ const loadFromLocalStorage = (): Document[] => {
 
 const saveToLocalStorage = (docs: Document[]) => {
   if (typeof window === 'undefined') return
-  
+
   try {
     localStorage.setItem(GUEST_STORAGE_KEY, JSON.stringify(docs))
   } catch (error) {
@@ -100,16 +100,19 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   },
 
   // Load all documents
+  // Load all documents
   loadDocuments: async () => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    // ✅ FIXED: Use auth store state instead of fragile localStorage check
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
-      set({ 
+      set({
         documents: guestDocs,
         recentDocuments: guestDocs.slice(0, 5),
         favoriteDocuments: guestDocs.filter(doc => doc.isFavorite),
-        isLoading: false 
+        isLoading: false
       })
       return
     }
@@ -117,26 +120,27 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const result = await apiClient.get<Document[]>('/api/documents')
-      
+
       if (result.success && result.data) {
-        set({ 
+        set({
           documents: result.data,
-          isLoading: false 
+          isLoading: false
         })
       }
     } catch (error) {
       console.error('Failed to load documents:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to load documents',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
 
   // Load single document
   loadDocument: async (id: string) => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
       const doc = guestDocs.find(d => d.id === id)
@@ -149,26 +153,27 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const result = await apiClient.get<Document>(`/api/documents/${id}`)
-      
+
       if (result.success && result.data) {
-        set({ 
+        set({
           currentDocument: result.data,
-          isLoading: false 
+          isLoading: false
         })
       }
     } catch (error) {
       console.error('Failed to load document:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to load document',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
 
   // Load favorite documents
   loadFavorites: async () => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
       set({ favoriteDocuments: guestDocs.filter(doc => doc.isFavorite) })
@@ -187,11 +192,12 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
   // Load recent documents
   loadRecentDocuments: async () => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
-      const sorted = [...guestDocs].sort((a, b) => 
+      const sorted = [...guestDocs].sort((a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       )
       set({ recentDocuments: sorted.slice(0, 5) })
@@ -214,14 +220,14 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     if (!current) return
 
     const stats = calculateStats(content)
-    const updatedDoc = { 
-      ...current, 
+    const updatedDoc = {
+      ...current,
       content,
       ...stats,
       updatedAt: new Date().toISOString()
     }
 
-    set({ 
+    set({
       currentDocument: updatedDoc,
       autoSaveState: {
         ...get().autoSaveState,
@@ -235,13 +241,13 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     const current = get().currentDocument
     if (!current) return
 
-    const updatedDoc = { 
-      ...current, 
+    const updatedDoc = {
+      ...current,
       title,
       updatedAt: new Date().toISOString()
     }
 
-    set({ 
+    set({
       currentDocument: updatedDoc,
       autoSaveState: {
         ...get().autoSaveState,
@@ -255,9 +261,10 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     const current = get().currentDocument
     if (!current) return
 
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
 
-    set({ 
+    set({
       autoSaveState: {
         ...get().autoSaveState,
         isAutoSaving: true
@@ -268,16 +275,16 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       // Save to localStorage
       const guestDocs = loadFromLocalStorage()
       const index = guestDocs.findIndex(d => d.id === current.id)
-      
+
       if (index >= 0) {
         guestDocs[index] = current
       } else {
         guestDocs.push(current)
       }
-      
+
       saveToLocalStorage(guestDocs)
-      
-      set({ 
+
+      set({
         documents: guestDocs,
         autoSaveState: {
           isAutoSaving: false,
@@ -295,7 +302,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         content: current.content,
         tags: current.tags
       })
-      
+
       if (result.success && result.data) {
         set({
           currentDocument: result.data,
@@ -309,7 +316,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to save document:', error)
-      set({ 
+      set({
         autoSaveState: {
           ...get().autoSaveState,
           isAutoSaving: false
@@ -320,15 +327,16 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
   // Toggle favorite status
   toggleFavorite: async (id: string) => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
       const docIndex = guestDocs.findIndex(d => d.id === id)
       if (docIndex >= 0) {
         guestDocs[docIndex].isFavorite = !guestDocs[docIndex].isFavorite
         saveToLocalStorage(guestDocs)
-        set({ 
+        set({
           documents: guestDocs,
           favoriteDocuments: guestDocs.filter(doc => doc.isFavorite)
         })
@@ -342,7 +350,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         const updatedDoc = result.data
         set({
           documents: get().documents.map(d => d.id === id ? updatedDoc : d),
-          favoriteDocuments: updatedDoc.isFavorite 
+          favoriteDocuments: updatedDoc.isFavorite
             ? [...get().favoriteDocuments, updatedDoc]
             : get().favoriteDocuments.filter(d => d.id !== id)
         })
@@ -354,8 +362,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
   // Create a new document
   createDocument: async (type: Document['type'], template?: string) => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     const newDoc: Document = {
       id: `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: 'Untitled Document',
@@ -374,7 +383,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       const guestDocs = loadFromLocalStorage()
       guestDocs.unshift(newDoc)
       saveToLocalStorage(guestDocs)
-      set({ 
+      set({
         documents: guestDocs,
         currentDocument: newDoc,
         recentDocuments: guestDocs.slice(0, 5)
@@ -385,7 +394,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const result = await apiClient.post<Document>('/api/documents', { type, content: template })
-      
+
       if (result.success && result.data) {
         set({
           documents: [result.data, ...get().documents],
@@ -395,34 +404,35 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to create document:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to create document',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
 
   // Update a document
   updateDocument: async (id: string, updates: Partial<Document>) => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage()
       const docIndex = guestDocs.findIndex(d => d.id === id)
-      
+
       if (docIndex >= 0) {
-        guestDocs[docIndex] = { 
-          ...guestDocs[docIndex], 
-          ...updates, 
-          updatedAt: new Date().toISOString() 
+        guestDocs[docIndex] = {
+          ...guestDocs[docIndex],
+          ...updates,
+          updatedAt: new Date().toISOString()
         }
         saveToLocalStorage(guestDocs)
-        set({ 
+        set({
           documents: guestDocs,
-          currentDocument: get().currentDocument?.id === id 
-            ? guestDocs[docIndex] 
+          currentDocument: get().currentDocument?.id === id
+            ? guestDocs[docIndex]
             : get().currentDocument,
-          recentDocuments: [...guestDocs].sort((a, b) => 
+          recentDocuments: [...guestDocs].sort((a, b) =>
             new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
           ).slice(0, 5)
         })
@@ -433,7 +443,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const result = await apiClient.put<Document>(`/api/documents/${id}`, updates)
-      
+
       if (result.success && result.data) {
         set({
           documents: get().documents.map(d => d.id === id ? result.data! : d),
@@ -443,21 +453,22 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to update document:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to update document',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
 
   // Delete a document
   deleteDocument: async (id: string) => {
-    const isGuest = typeof window !== 'undefined' && !localStorage.getItem('auth_token')
-    
+    const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
+    const isGuest = isGuestMode || !token
+
     if (isGuest) {
       const guestDocs = loadFromLocalStorage().filter(d => d.id !== id)
       saveToLocalStorage(guestDocs)
-      set({ 
+      set({
         documents: guestDocs,
         currentDocument: get().currentDocument?.id === id ? null : get().currentDocument,
         recentDocuments: guestDocs.slice(0, 5),
@@ -469,7 +480,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const result = await apiClient.delete<any>(`/api/documents/${id}`)
-      
+
       if (result.success) {
         set({
           documents: get().documents.filter(d => d.id !== id),
@@ -479,9 +490,9 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to delete document:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Failed to delete document',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
@@ -499,17 +510,17 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   saveGuestDocument: (doc: Document) => {
     const guestDocs = loadFromLocalStorage()
     const index = guestDocs.findIndex(d => d.id === doc.id)
-    
+
     if (index >= 0) {
       guestDocs[index] = doc
     } else {
       guestDocs.push(doc)
     }
-    
+
     saveToLocalStorage(guestDocs)
-    set({ 
+    set({
       documents: guestDocs,
-      recentDocuments: [...guestDocs].sort((a, b) => 
+      recentDocuments: [...guestDocs].sort((a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
       ).slice(0, 5)
     })
@@ -518,7 +529,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   deleteGuestDocument: (id: string) => {
     const guestDocs = loadFromLocalStorage().filter(d => d.id !== id)
     saveToLocalStorage(guestDocs)
-    set({ 
+    set({
       documents: guestDocs,
       recentDocuments: guestDocs.slice(0, 5),
       favoriteDocuments: guestDocs.filter(doc => doc.isFavorite)
@@ -527,8 +538,8 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
 
   clearGuestDocuments: () => {
     localStorage.removeItem(GUEST_STORAGE_KEY)
-    set({ 
-      documents: [], 
+    set({
+      documents: [],
       currentDocument: null,
       recentDocuments: [],
       favoriteDocuments: []

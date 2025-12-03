@@ -8,10 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import * as d3 from 'd3'
-import { 
-  RefreshCw, 
-  ZoomIn, 
-  ZoomOut, 
+import {
+  RefreshCw,
+  ZoomIn,
+  ZoomOut,
   Maximize2,
   Minimize2,
   Network,
@@ -26,22 +26,22 @@ interface KnowledgeGraphViewerProps {
 }
 
 export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphViewerProps) {
-  const { 
-    graph, 
-    selectedNode, 
+  const {
+    graph,
+    selectedNode,
     documentDetails,
     recommendations,
-    isLoading, 
-    error, 
-    loadGraph, 
-    selectNode, 
+    isLoading,
+    error,
+    loadGraph,
+    selectNode,
     loadTooltipData,
     clearTooltip,
     clearSelection,
     openDocument,
     refreshGraph
   } = useKnowledgeGraphStore()
-  
+
   const svgRef = useRef<SVGSVGElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [filterType, setFilterType] = useState<string>('all')
@@ -61,15 +61,15 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
         simulationRef.current.stop()
         simulationRef.current = null
       }
-      
+
       // Clear any existing zoom behavior
       if (zoomBehaviorRef.current && svgRef.current) {
         d3.select(svgRef.current).on('.zoom', null)
       }
-      
+
       renderGraph()
     }
-    
+
     return () => {
       if (simulationRef.current) {
         simulationRef.current.stop()
@@ -81,7 +81,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
   const getNodeColor = (type: string) => {
     const colors = {
       research: '#3B82F6',
-      engineering: '#10B981', 
+      engineering: '#10B981',
       healthcare: '#EF4444',
       meeting: '#8B5CF6',
       general: '#6B7280'
@@ -98,7 +98,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
 
     const width = 800
     const height = 600
-    
+
     // Filter nodes and edges
     let filteredNodes = graph.nodes
     if (filterType !== 'all') {
@@ -109,7 +109,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
     svg.selectAll('*').remove()
 
     const nodeIds = new Set(filteredNodes.map(n => n.id))
-    const filteredEdges = graph.edges.filter(edge => 
+    const filteredEdges = graph.edges.filter(edge =>
       nodeIds.has(edge.source) && nodeIds.has(edge.target)
     )
 
@@ -137,13 +137,13 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
 
     // Always draw cluster backgrounds
     const clusterGroup = g.append('g').attr('class', 'clusters')
-    
+
     if (graph.clusters && graph.clusters.length > 0) {
       graph.clusters.forEach((cluster) => {
-        const clusterNodes = filteredNodes.filter(node => 
+        const clusterNodes = filteredNodes.filter(node =>
           cluster.documents.includes(node.id)
         )
-        
+
         if (clusterNodes.length > 1) {
           const clusterPath = clusterGroup.append('path')
             .attr('class', 'cluster-path')
@@ -153,7 +153,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
             .attr('stroke-opacity', 0.3)
             .attr('stroke-width', 2)
             .attr('stroke-dasharray', '5,5')
-          
+
           const updateClusterHull = () => {
             const positions: [number, number][] = clusterNodes
               .map(d => {
@@ -162,7 +162,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                 return [x, y] as [number, number]
               })
               .filter(pos => !isNaN(pos[0]) && !isNaN(pos[1]))
-            
+
             if (positions.length > 2) {
               const hull = d3.polygonHull(positions)
               if (hull) {
@@ -170,7 +170,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
               }
             }
           }
-          
+
           simulation.on(`tick.cluster-${cluster.id}`, updateClusterHull)
         }
       })
@@ -207,13 +207,13 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
         event.stopPropagation()
         openDocument(d.id)
       })
-      .on('mouseover', async function(event, d: any) {
+      .on('mouseover', async function (event, d: any) {
         d3.select(this).select('circle').attr('stroke-width', 4)
-        
+
         await loadTooltipData(d.id)
         const store = useKnowledgeGraphStore.getState()
         const tooltipInfo = store.tooltipData
-        
+
         const tooltip = d3.select('body')
           .append('div')
           .attr('class', 'kg-tooltip')
@@ -233,7 +233,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
             </div>
             <div style="display: grid; grid-template-columns: auto 1fr; gap: 8px; font-size: 11px;">
               <span style="color: #aaa;">Type:</span><span style="text-transform: capitalize;">${d.type}</span>
-              <span style="color: #aaa;">Words:</span><span>${d.wordCount.toLocaleString()}</span>
+              <span style="color: #aaa;">Words:</span><span>${(d.wordCount || 0).toLocaleString()}</span>
               ${tooltipInfo ? `
                 <span style="color: #aaa;">Reading:</span><span>${tooltipInfo.readingTime} min</span>
                 <span style="color: #aaa;">Connections:</span><span>${tooltipInfo.connectionCount}</span>
@@ -253,12 +253,12 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
               Click to select • Double-click to open
             </div>
           `)
-        
+
         tooltip
           .style('left', (event.pageX + 10) + 'px')
           .style('top', (event.pageY - 10) + 'px')
       })
-      .on('mouseout', function() {
+      .on('mouseout', function () {
         d3.select(this).select('circle').attr('stroke-width', 2)
         d3.selectAll('.kg-tooltip').remove()
       })
@@ -398,7 +398,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
               </Badge>
             )}
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <select
               value={filterType}
@@ -412,37 +412,37 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
               <option value="meeting">Meeting</option>
               <option value="general">General</option>
             </select>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleZoomIn}
               title="Zoom In"
             >
               <ZoomIn className="h-4 w-4" />
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleZoomOut}
               title="Zoom Out"
             >
               <ZoomOut className="h-4 w-4" />
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={toggleFullscreen}
               title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
             >
               {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
             </Button>
-            
-            <Button 
-              variant="outline" 
-              size="sm" 
+
+            <Button
+              variant="outline"
+              size="sm"
               onClick={handleRefresh}
               title="Refresh Graph"
             >
@@ -450,7 +450,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
             </Button>
           </div>
         </div>
-        
+
         {/* Graph Canvas */}
         <div ref={containerRef} className="flex-1 relative overflow-hidden bg-background">
           <svg
@@ -461,14 +461,14 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
             viewBox="0 0 800 600"
             style={{ background: 'transparent' }}
           />
-          
+
           {/* Zoom indicator */}
           <div className="absolute bottom-4 right-4 bg-background border border-border px-3 py-1.5 rounded-md text-xs font-medium shadow-md text-foreground">
             Zoom: {(zoomLevel * 100).toFixed(0)}%
           </div>
         </div>
       </div>
-      
+
       {/* Side Panel */}
       {selectedNode && (
         <div className="w-80 border-l border-border bg-background overflow-auto">
@@ -476,9 +476,9 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-foreground">Document Details</h3>
               <div className="flex items-center space-x-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => openDocument(selectedNode.id)}
                 >
                   <FileText className="h-4 w-4 mr-1" />
@@ -489,14 +489,14 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                 </Button>
               </div>
             </div>
-            
+
             <Card className="mb-4 bg-card border-border">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base text-card-foreground">{selectedNode.title}</CardTitle>
                 <div className="flex items-center space-x-2 flex-wrap">
-                  <Badge 
-                    variant="outline" 
-                    style={{ 
+                  <Badge
+                    variant="outline"
+                    style={{
                       backgroundColor: `${getNodeColor(selectedNode.type)}20`,
                       borderColor: getNodeColor(selectedNode.type)
                     }}
@@ -526,7 +526,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                     </div>
                   </div>
                 )}
-                
+
                 {selectedNode.concepts.length > 0 && (
                   <div>
                     <h4 className="text-sm font-medium mb-2 text-foreground">Key Concepts</h4>
@@ -539,7 +539,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                     </div>
                   </div>
                 )}
-                
+
                 {documentDetails?.document && (
                   <div className="mt-3">
                     <h4 className="text-sm font-medium mb-2 text-foreground">Reading Time</h4>
@@ -550,7 +550,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                 )}
               </CardContent>
             </Card>
-            
+
             {recommendations.length > 0 && (
               <Card className="bg-card border-border">
                 <CardHeader className="pb-2">
@@ -572,7 +572,7 @@ export function KnowledgeGraphViewer({ className, onNodeClick }: KnowledgeGraphV
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate text-foreground">{doc.title}</p>
                             <p className="text-xs text-muted-foreground capitalize">
-                              {doc.type} • {doc.wordCount.toLocaleString()} words • {doc.readingTime}min read
+                              {doc.type} • {(doc.wordCount || 0).toLocaleString()} words • {doc.readingTime || 0}min read
                             </p>
                             {doc.tags && doc.tags.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">

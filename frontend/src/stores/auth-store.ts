@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { isTokenExpired } from '@/lib/auth-utils'
 
 interface User {
   id: string
@@ -16,7 +17,7 @@ interface AuthState {
   isGuestMode: boolean // ✅ NEW: Track guest mode
   isLoading: boolean
   error: string | null
-  
+
   // Actions
   login: (email: string, password: string) => Promise<void>
   register: (email: string, password: string, name?: string) => Promise<void>
@@ -59,7 +60,7 @@ export const useAuthStore = create<AuthState>()(
 
       login: async (email: string, password: string) => {
         set({ isLoading: true, error: null })
-        
+
         try {
           const response = await fetch(`${API_URL}/api/auth/login`, {
             method: 'POST',
@@ -81,6 +82,40 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null
           })
+
+          // ✅ NEW: Migrate guest documents
+          const { getGuestDocuments, clearGuestDocuments } = await import('./document-store').then(m => m.useDocumentStore.getState())
+          const guestDocs = getGuestDocuments()
+
+          if (guestDocs.length > 0) {
+            console.log(`Migrating ${guestDocs.length} guest documents...`)
+            try {
+              // Upload each document
+              for (const doc of guestDocs) {
+                await fetch(`${API_URL}/api/documents`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${data.data.token}`
+                  },
+                  body: JSON.stringify({
+                    title: doc.title,
+                    content: doc.content,
+                    type: doc.type,
+                    tags: doc.tags
+                  })
+                })
+              }
+              console.log('Migration successful')
+              clearGuestDocuments()
+
+              // Reload documents to show new ones
+              const { loadDocuments } = await import('./document-store').then(m => m.useDocumentStore.getState())
+              await loadDocuments()
+            } catch (error) {
+              console.error('Failed to migrate guest documents:', error)
+            }
+          }
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Login failed',
@@ -93,7 +128,7 @@ export const useAuthStore = create<AuthState>()(
 
       register: async (email: string, password: string, name?: string) => {
         set({ isLoading: true, error: null })
-        
+
         try {
           const response = await fetch(`${API_URL}/api/auth/register`, {
             method: 'POST',
@@ -121,6 +156,40 @@ export const useAuthStore = create<AuthState>()(
             isLoading: false,
             error: null
           })
+
+          // ✅ NEW: Migrate guest documents
+          const { getGuestDocuments, clearGuestDocuments } = await import('./document-store').then(m => m.useDocumentStore.getState())
+          const guestDocs = getGuestDocuments()
+
+          if (guestDocs.length > 0) {
+            console.log(`Migrating ${guestDocs.length} guest documents...`)
+            try {
+              // Upload each document
+              for (const doc of guestDocs) {
+                await fetch(`${API_URL}/api/documents`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${data.data.token}`
+                  },
+                  body: JSON.stringify({
+                    title: doc.title,
+                    content: doc.content,
+                    type: doc.type,
+                    tags: doc.tags
+                  })
+                })
+              }
+              console.log('Migration successful')
+              clearGuestDocuments()
+
+              // Reload documents to show new ones
+              const { loadDocuments } = await import('./document-store').then(m => m.useDocumentStore.getState())
+              await loadDocuments()
+            } catch (error) {
+              console.error('Failed to migrate guest documents:', error)
+            }
+          }
         } catch (error) {
           set({
             error: error instanceof Error ? error.message : 'Registration failed',
@@ -139,13 +208,28 @@ export const useAuthStore = create<AuthState>()(
           isGuestMode: false, // ✅ Clear guest mode on logout
           error: null
         })
+
+        // ✅ NEW: Clear all data on logout
+        import('./knowledge-graph-store').then(m => m.useKnowledgeGraphStore.getState().clearGraph())
+        import('./document-store').then(m => m.useDocumentStore.getState().documents = []) // Reset documents
+
+        // Force reload to clear any stale state
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login'
+        }
       },
 
       checkAuth: async () => {
         const { token } = get()
-        
+
         if (!token) {
           set({ isAuthenticated: false, user: null })
+          return
+        }
+
+        // Check if token is expired
+        if (isTokenExpired(token)) {
+          set({ isAuthenticated: false, user: null, token: null })
           return
         }
 
@@ -161,7 +245,7 @@ export const useAuthStore = create<AuthState>()(
           }
 
           const data = await response.json()
-          
+
           set({
             user: data.data,
             isAuthenticated: true,

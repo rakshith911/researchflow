@@ -62,7 +62,7 @@ interface KnowledgeGraphStore {
   isLoading: boolean
   error: string | null
   lastRefreshTime: number // ✅ NEW: Track last refresh to prevent duplicate calls
-  
+
   // Actions
   loadGraph: () => Promise<void>
   selectNode: (nodeId: string) => void
@@ -73,6 +73,7 @@ interface KnowledgeGraphStore {
   clearTooltip: () => void
   refreshGraph: () => Promise<void>
   openDocument: (documentId: string) => void
+  clearGraph: () => void // ✅ NEW
 }
 
 export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => ({
@@ -94,10 +95,10 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
     }
 
     set({ isLoading: true, error: null, lastRefreshTime: now })
-    
+
     try {
       const result = await apiClient.get<any>('/api/knowledge-graph')
-      
+
       if (result.success) {
         set({ graph: result.data, isLoading: false })
       } else {
@@ -105,9 +106,9 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
       }
     } catch (error) {
       console.error('Failed to load knowledge graph:', error)
-      set({ 
+      set({
         error: error instanceof Error ? error.message : 'Unknown error',
-        isLoading: false 
+        isLoading: false
       })
     }
   },
@@ -115,10 +116,10 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
   selectNode: (nodeId: string) => {
     const { graph } = get()
     if (!graph) return
-    
+
     const node = graph.nodes.find(n => n.id === nodeId)
     set({ selectedNode: node || null })
-    
+
     if (node) {
       get().loadDocumentDetails(nodeId)
     }
@@ -127,11 +128,11 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
   loadDocumentDetails: async (documentId: string) => {
     try {
       const result = await apiClient.get<any>(`/api/knowledge-graph/document/${documentId}/details`)
-      
+
       if (result.success) {
-        set({ 
+        set({
           documentDetails: result.data,
-          recommendations: result.data.recommendations 
+          recommendations: result.data.recommendations
         })
       }
     } catch (error) {
@@ -142,7 +143,7 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
   loadTooltipData: async (documentId: string) => {
     try {
       const result = await apiClient.get<any>(`/api/knowledge-graph/document/${documentId}/tooltip`)
-      
+
       if (result.success) {
         set({ tooltipData: result.data })
       }
@@ -154,7 +155,7 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
   getRecommendations: async (documentId: string) => {
     try {
       const result = await apiClient.get<any>(`/api/knowledge-graph/recommendations/${documentId}`)
-      
+
       if (result.success) {
         set({ recommendations: result.data })
       }
@@ -175,7 +176,7 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
     // ✅ FIX: Debounced refresh with explicit reload
     const state = get()
     const now = Date.now()
-    
+
     // If already loading or refreshed within last second, skip
     if (state.isLoading || (now - state.lastRefreshTime < 1000)) {
       console.log('Skipping refresh - too soon or already loading')
@@ -193,5 +194,16 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
     window.location.href = `/editor?docId=${documentId}`
     // Or if using Next.js router:
     // router.push(`/editor?docId=${documentId}`)
+  },
+
+  clearGraph: () => {
+    set({
+      graph: null,
+      selectedNode: null,
+      documentDetails: null,
+      tooltipData: null,
+      recommendations: [],
+      error: null
+    })
   }
 }))

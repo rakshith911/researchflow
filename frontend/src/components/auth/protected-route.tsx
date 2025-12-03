@@ -40,7 +40,7 @@ export function ProtectedRoute({ children, requireAuth = false }: ProtectedRoute
       if (token) {
         await checkAuth();
       }
-      
+
       setIsChecking(false);
     };
 
@@ -53,7 +53,9 @@ export function ProtectedRoute({ children, requireAuth = false }: ProtectedRoute
     // 2. Not authenticated AND
     // 3. Not in guest mode AND
     // 4. Done checking
+    // 4. Done checking
     if (!isChecking && requireAuth && !isAuthenticated && !isGuestMode) {
+      console.log('ProtectedRoute: Redirecting to login', { isChecking, requireAuth, isAuthenticated, isGuestMode })
       router.push('/login');
     }
   }, [isChecking, isAuthenticated, isGuestMode, requireAuth, router]);

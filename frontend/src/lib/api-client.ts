@@ -1,5 +1,6 @@
 // frontend/src/lib/api-client.ts
 import { useAuthStore } from '@/stores/auth-store'
+import { isTokenExpired } from '@/lib/auth-utils'
 
 interface ApiResponse<T = any> {
   success: boolean
@@ -81,6 +82,18 @@ class ApiClient {
 
     // ✅ Only add auth header if we have a token
     if (token) {
+      // Check if token is expired before sending request
+      if (isTokenExpired(token)) {
+        useAuthStore.getState().logout()
+        if (typeof window !== 'undefined') {
+          window.location.replace('/login')
+        }
+        return {
+          success: false,
+          error: 'Session expired. Please login again.',
+        }
+      }
+
       headers['Authorization'] = `Bearer ${token}`
     }
 
@@ -106,7 +119,7 @@ class ApiClient {
             error: 'This feature requires authentication. Please sign up to continue.',
           }
         }
-        
+
         // If authenticated user gets 401, their session expired
         if (token) {
           useAuthStore.getState().logout()
@@ -115,7 +128,7 @@ class ApiClient {
             window.location.replace('/login')
           }
         }
-        
+
         return {
           success: false,
           error: 'Session expired. Please login again.',
@@ -167,13 +180,13 @@ class ApiClient {
   }
 
   // ==================== DOCUMENT APIs ====================
-  
+
   async searchDocuments(query: string, options?: { type?: string; limit?: number; offset?: number }): Promise<ApiResponse<any[]>> {
     const params = new URLSearchParams({ q: query })
     if (options?.type) params.append('type', options.type)
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
-    
+
     return this.get<any[]>(`/api/documents/search?${params.toString()}`)
   }
 
@@ -193,7 +206,7 @@ class ApiClient {
     const params = new URLSearchParams()
     if (options?.limit) params.append('limit', options.limit.toString())
     if (options?.offset) params.append('offset', options.offset.toString())
-    
+
     const query = params.toString()
     return this.get<any[]>(`/api/documents/favorites${query ? `?${query}` : ''}`)
   }
@@ -207,8 +220,8 @@ class ApiClient {
   }
 
   async bulkUpdateTags(
-    documentIds: string[], 
-    tags: string[], 
+    documentIds: string[],
+    tags: string[],
     operation: 'add' | 'remove' | 'replace'
   ): Promise<ApiResponse<{ updatedCount: number }>> {
     return this.post<{ updatedCount: number }>('/api/documents/bulk-tags', {
@@ -381,14 +394,14 @@ class ApiClient {
 
       if (response.status === 401) {
         const { isGuestMode } = useAuthStore.getState()
-        
+
         if (isGuestMode) {
           return {
             success: false,
             error: 'File uploads require authentication. Please sign up to continue.',
           }
         }
-        
+
         useAuthStore.getState().logout()
         if (typeof window !== 'undefined') {
           window.location.replace('/login')

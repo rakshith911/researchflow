@@ -16,6 +16,7 @@ import settingsRoutes from './routes/settings.routes'
 import uploadRoutes from './routes/upload.routes'
 import sharingRoutes from './routes/sharing.routes' // ✅ NEW - Collaboration sharing
 import commentsRoutes from './routes/comments.routes' // ✅ NEW - Document comments
+import adminRoutes from './routes/admin.routes' // ✅ NEW - Admin routes
 
 dotenv.config()
 
@@ -52,6 +53,7 @@ app.use('/api/settings', settingsRoutes)
 app.use('/api/upload', uploadRoutes)
 app.use('/api/sharing', sharingRoutes) // ✅ NEW - Share management
 app.use('/api/comments', commentsRoutes) // ✅ NEW - Individual comment operations
+app.use('/api/admin', adminRoutes) // ✅ NEW - Admin operations
 
 // Error handling
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
