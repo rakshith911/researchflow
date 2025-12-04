@@ -6,12 +6,15 @@ import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Brain, 
-  FileText, 
-  Network, 
-  Zap, 
-  ArrowRight, 
+import { DomainSelectionDialog } from '@/components/onboarding/domain-selection-dialog'
+import { UserDomain } from '@/config/templates'
+import { useSettingsStore } from '@/stores/settings-store'
+import {
+  Brain,
+  FileText,
+  Network,
+  Zap,
+  ArrowRight,
   CheckCircle,
   Sparkles,
   Link2,
@@ -23,13 +26,23 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { enterGuestMode, isAuthenticated } = useAuthStore()
+  const { setUserDomain } = useSettingsStore()
+  const [showDomainDialog, setShowDomainDialog] = useState(false)
 
   const handleTryNow = () => {
+    setShowDomainDialog(true)
+  }
+
+  const handleDomainSelect = async (domain: UserDomain) => {
     setIsLoading(true)
-    
+    setShowDomainDialog(false)
+
+    // Set domain preference
+    await setUserDomain(domain)
+
     // Enter guest mode
     enterGuestMode()
-    
+
     // Small delay for smooth transition
     setTimeout(() => {
       setIsLoading(false)
@@ -78,30 +91,30 @@ export default function HomePage() {
             <Sparkles className="w-3 h-3 mr-1" />
             No Credit Card Required
           </Badge>
-          
+
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
             Your AI-Powered
             <span className="text-primary block mt-2">Knowledge Workspace</span>
           </h1>
-          
+
           <p className="text-xl text-muted-foreground mb-8 leading-relaxed max-w-3xl mx-auto">
-            Connect ideas, discover insights, and build your personal knowledge graph. 
+            Connect ideas, discover insights, and build your personal knowledge graph.
             Perfect for researchers, engineers, and professionals who think in networks.
           </p>
-          
+
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button 
-              size="lg" 
-              onClick={handleTryNow} 
+            <Button
+              size="lg"
+              onClick={handleTryNow}
               disabled={isLoading}
               className="text-lg px-8 py-6 h-auto"
             >
               {isLoading ? 'Starting...' : '🚀 Try It Now - No Sign Up'}
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            
-            <Button 
-              size="lg" 
+
+            <Button
+              size="lg"
               variant="outline"
               onClick={() => router.push('/register')}
               className="text-lg px-8 py-6 h-auto"
@@ -186,7 +199,7 @@ export default function HomePage() {
           <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
             Why Professionals Choose ResearchFlow
           </h2>
-          
+
           <div className="space-y-6">
             <div className="flex items-start gap-4 p-6 rounded-lg bg-background border">
               <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
@@ -197,7 +210,7 @@ export default function HomePage() {
                   All Your Work in One Place
                 </h3>
                 <p className="text-muted-foreground">
-                  Stop juggling between apps. ResearchFlow consolidates research notes, technical docs, 
+                  Stop juggling between apps. ResearchFlow consolidates research notes, technical docs,
                   meeting minutes, and project plans in a unified workspace.
                 </p>
               </div>
@@ -212,7 +225,7 @@ export default function HomePage() {
                   Save Hours Every Week
                 </h3>
                 <p className="text-muted-foreground">
-                  AI-powered automation handles tagging, categorization, and connecting related content. 
+                  AI-powered automation handles tagging, categorization, and connecting related content.
                   Focus on thinking, not organizing.
                 </p>
               </div>
@@ -227,7 +240,7 @@ export default function HomePage() {
                   Your Data, Your Control
                 </h3>
                 <p className="text-muted-foreground">
-                  End-to-end encryption, local-first architecture, and full data export. 
+                  End-to-end encryption, local-first architecture, and full data export.
                   Your intellectual property stays yours.
                 </p>
               </div>
@@ -246,7 +259,7 @@ export default function HomePage() {
             Join professionals who are thinking better with ResearchFlow
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
+            <Button
               size="lg"
               onClick={handleTryNow}
               disabled={isLoading}
@@ -285,6 +298,12 @@ export default function HomePage() {
           </p>
         </div>
       </footer>
+
+      <DomainSelectionDialog
+        open={showDomainDialog}
+        onSelect={handleDomainSelect}
+        onCancel={() => setShowDomainDialog(false)}
+      />
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from './auth-store'
+import { UserDomain } from '@/config/templates'
 
 interface UserProfile {
   id: string
@@ -33,6 +34,7 @@ interface UserSettings {
   showPreview: boolean
   splitView: boolean
   notifications: NotificationSettings
+  userDomain: UserDomain // ✅ NEW: User's primary domain
 }
 
 interface UserStatistics {
@@ -49,20 +51,21 @@ interface SettingsStore {
   statistics: UserStatistics | null
   isLoading: boolean
   error: string | null
-  
+
   // Actions
   loadProfile: () => Promise<void>
   updateProfile: (updates: { name?: string; email?: string }) => Promise<void>
   changePassword: (currentPassword: string, newPassword: string) => Promise<void>
-  
+
   loadSettings: () => Promise<void>
   updateSettings: (updates: Partial<UserSettings>) => Promise<void>
-  
+  setUserDomain: (domain: UserDomain) => Promise<void> // ✅ NEW: Action to set domain
+
   loadStatistics: () => Promise<void>
-  
+
   exportData: () => Promise<any>
   deleteAccount: (password: string) => Promise<void>
-  
+
   clearError: () => void
 }
 
@@ -82,7 +85,8 @@ const DEFAULT_SETTINGS: UserSettings = {
   notifications: {
     email: false,
     desktop: false
-  }
+  },
+  userDomain: 'general' // ✅ Default to general
 }
 
 export const useSettingsStore = create<SettingsStore>()(
@@ -98,7 +102,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Load user profile
       loadProfile: async () => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         // ✅ FIX: Don't load if not authenticated or in guest mode
         if (!isAuthenticated || isGuestMode) {
           set({ profile: null, isLoading: false })
@@ -108,7 +112,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/profile')
-          
+
           if (result.success) {
             set({ profile: result.data, isLoading: false })
           } else {
@@ -116,9 +120,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to load profile:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to load profile',
-            isLoading: false 
+            isLoading: false
           })
         }
       },
@@ -126,7 +130,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Update user profile
       updateProfile: async (updates) => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         if (!isAuthenticated || isGuestMode) {
           throw new Error('Must be logged in to update profile')
         }
@@ -134,7 +138,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.put<any>('/api/settings/profile', updates)
-          
+
           if (result.success) {
             set({ profile: result.data, isLoading: false })
           } else {
@@ -142,9 +146,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to update profile:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to update profile',
-            isLoading: false 
+            isLoading: false
           })
           throw error
         }
@@ -153,7 +157,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Change password
       changePassword: async (currentPassword, newPassword) => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         if (!isAuthenticated || isGuestMode) {
           throw new Error('Must be logged in to change password')
         }
@@ -164,7 +168,7 @@ export const useSettingsStore = create<SettingsStore>()(
             currentPassword,
             newPassword
           })
-          
+
           if (result.success) {
             set({ isLoading: false })
           } else {
@@ -172,9 +176,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to change password:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to change password',
-            isLoading: false 
+            isLoading: false
           })
           throw error
         }
@@ -183,7 +187,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Load user settings
       loadSettings: async () => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         // ✅ FIX: Don't call API if not authenticated or in guest mode
         if (!isAuthenticated || isGuestMode) {
           // Use persisted settings or defaults for guest users
@@ -195,7 +199,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/preferences')
-          
+
           if (result.success) {
             set({ settings: result.data, isLoading: false })
           } else {
@@ -204,9 +208,9 @@ export const useSettingsStore = create<SettingsStore>()(
         } catch (error) {
           console.error('Failed to load settings:', error)
           // ✅ FIX: Don't throw, just use defaults
-          set({ 
+          set({
             settings: DEFAULT_SETTINGS,
-            isLoading: false 
+            isLoading: false
           })
         }
       },
@@ -216,10 +220,10 @@ export const useSettingsStore = create<SettingsStore>()(
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
         const currentSettings = get().settings || DEFAULT_SETTINGS
         const newSettings = { ...currentSettings, ...updates }
-        
+
         // ✅ FIX: Update locally first for immediate UI update
         set({ settings: newSettings })
-        
+
         // If authenticated and not guest, also update on server
         if (!isAuthenticated || isGuestMode) {
           return // Just save locally for guest users
@@ -228,7 +232,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.put<any>('/api/settings/preferences', newSettings)
-          
+
           if (result.success) {
             set({ settings: result.data, isLoading: false })
           } else {
@@ -237,17 +241,23 @@ export const useSettingsStore = create<SettingsStore>()(
         } catch (error) {
           console.error('Failed to update settings:', error)
           // Keep local changes even if API fails
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to update settings',
-            isLoading: false 
+            isLoading: false
           })
         }
+      },
+
+      // ✅ NEW: Set user domain
+      setUserDomain: async (domain: UserDomain) => {
+        const { updateSettings } = get()
+        await updateSettings({ userDomain: domain })
       },
 
       // Load user statistics
       loadStatistics: async () => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         if (!isAuthenticated || isGuestMode) {
           set({ statistics: null, isLoading: false })
           return
@@ -256,7 +266,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/statistics')
-          
+
           if (result.success) {
             set({ statistics: result.data, isLoading: false })
           } else {
@@ -264,9 +274,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to load statistics:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to load statistics',
-            isLoading: false 
+            isLoading: false
           })
         }
       },
@@ -274,7 +284,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Export all user data
       exportData: async () => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         if (!isAuthenticated || isGuestMode) {
           throw new Error('Must be logged in to export data')
         }
@@ -282,7 +292,7 @@ export const useSettingsStore = create<SettingsStore>()(
         set({ isLoading: true, error: null })
         try {
           const result = await apiClient.get<any>('/api/settings/export')
-          
+
           if (result.success) {
             set({ isLoading: false })
             return result.data
@@ -291,9 +301,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to export data:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to export data',
-            isLoading: false 
+            isLoading: false
           })
           throw error
         }
@@ -302,7 +312,7 @@ export const useSettingsStore = create<SettingsStore>()(
       // Delete user account
       deleteAccount: async (password) => {
         const { isAuthenticated, isGuestMode } = useAuthStore.getState()
-        
+
         if (!isAuthenticated || isGuestMode) {
           throw new Error('Must be logged in to delete account')
         }
@@ -312,7 +322,7 @@ export const useSettingsStore = create<SettingsStore>()(
           const result = await apiClient.delete<any>('/api/settings/account', {
             password
           })
-          
+
           if (result.success) {
             set({ isLoading: false, profile: null, settings: null, statistics: null })
           } else {
@@ -320,9 +330,9 @@ export const useSettingsStore = create<SettingsStore>()(
           }
         } catch (error) {
           console.error('Failed to delete account:', error)
-          set({ 
+          set({
             error: error instanceof Error ? error.message : 'Failed to delete account',
-            isLoading: false 
+            isLoading: false
           })
           throw error
         }
@@ -335,7 +345,23 @@ export const useSettingsStore = create<SettingsStore>()(
       name: 'settings-storage',
       partialize: (state) => ({
         settings: state.settings, // Only persist settings
-      })
+      }),
+      merge: (persistedState: any, currentState) => {
+        // Merge persisted settings with default settings to ensure new fields (like userDomain) are present
+        if (persistedState && persistedState.settings) {
+          return {
+            ...currentState,
+            ...persistedState,
+            settings: {
+              ...DEFAULT_SETTINGS,
+              ...persistedState.settings,
+              // Ensure userDomain is present if missing in persisted settings
+              userDomain: persistedState.settings.userDomain || DEFAULT_SETTINGS.userDomain
+            }
+          }
+        }
+        return currentState
+      }
     }
   )
 )
