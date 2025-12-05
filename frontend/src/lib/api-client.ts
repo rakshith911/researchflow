@@ -445,6 +445,31 @@ class ApiClient {
     }
     return `${this.baseUrl}${url}`
   }
+
+  async importTemplateFromPdf(file: File): Promise<ApiResponse<{ content: string; originalName: string }>> {
+    const token = useAuthStore.getState().token
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/templates/import`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      })
+
+      const data = await response.json()
+      return data
+    } catch (error) {
+      console.error('Template import failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Import failed',
+      }
+    }
+  }
 }
 
 export const apiClient = new ApiClient()
