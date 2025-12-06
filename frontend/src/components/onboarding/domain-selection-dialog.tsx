@@ -1,92 +1,109 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-    DialogFooter
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { DOMAINS, UserDomain } from '@/config/templates';
-import { cn } from '@/lib/utils';
-import { CheckCircle } from 'lucide-react';
+import { Card } from '@/components/ui/card'
+import { Brain, Stethoscope, Lightbulb, Check, X } from 'lucide-react'
+import { UserDomain } from '@/config/templates'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { motion, AnimatePresence } from 'framer-motion'
+import { cn } from '@/lib/utils'
+import { useState } from 'react'
 
 interface DomainSelectionDialogProps {
-    open: boolean;
-    onSelect: (domain: UserDomain) => void;
-    onCancel: () => void;
+    open: boolean
+    onSelect: (domain: UserDomain) => void
+    onCancel: () => void
 }
 
-export function DomainSelectionDialog({ open, onSelect, onCancel }: DomainSelectionDialogProps) {
-    const [selectedDomain, setSelectedDomain] = useState<UserDomain | null>(null);
+const DOMAINS = [
+    {
+        id: 'research',
+        name: 'Research & Engineering',
+        description: 'For academics, engineers, and technical writers. Includes LaTeX-style support and code blocks.',
+        icon: Brain,
+        color: 'text-purple-500',
+        bg: 'bg-purple-500/10',
+        border: 'hover:border-purple-500/50'
+    },
+    {
+        id: 'medical',
+        name: 'Medical & Clinical',
+        description: 'HIPAA-compliant templates for clinical notes, SOAP, and patient history.',
+        icon: Stethoscope,
+        color: 'text-blue-500',
+        bg: 'bg-blue-500/10',
+        border: 'hover:border-blue-500/50'
+    },
+    {
+        id: 'general',
+        name: 'General Productivity',
+        description: 'Flexible workspace for project management, meeting notes, and personal wiki.',
+        icon: Lightbulb,
+        color: 'text-orange-500',
+        bg: 'bg-orange-500/10',
+        border: 'hover:border-orange-500/50'
+    }
+] as const
 
-    const handleConfirm = () => {
-        if (selectedDomain) {
-            onSelect(selectedDomain);
-        }
-    };
+export function DomainSelectionDialog({ open, onSelect, onCancel }: DomainSelectionDialogProps) {
+    const [hovered, setHovered] = useState<string | null>(null)
 
     return (
-        <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onCancel()}>
-            <DialogContent className="sm:max-w-[600px] bg-background">
-                <DialogHeader>
-                    <DialogTitle className="text-2xl text-center">Choose Your Workspace</DialogTitle>
-                    <DialogDescription className="text-center text-muted-foreground">
-                        Select a domain to get tailored templates and features. You can change this later in settings.
+        <Dialog open={open} onOpenChange={() => { }}>
+            <DialogContent className="sm:max-w-4xl bg-background/95 backdrop-blur-xl border-border p-8">
+                <button
+                    onClick={onCancel}
+                    className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground"
+                >
+                    <X className="h-4 w-4" />
+                    <span className="sr-only">Close</span>
+                </button>
+
+                <DialogHeader className="mb-8 text-center">
+                    <DialogTitle className="text-3xl font-bold mb-2">How do you think?</DialogTitle>
+                    <DialogDescription className="text-lg">
+                        Choose your primary workspace to get tailored templates and AI features.
                     </DialogDescription>
                 </DialogHeader>
 
-                <div className="grid gap-4 py-4">
-                    {DOMAINS.map((domain) => {
-                        const Icon = domain.icon;
-                        const isSelected = selectedDomain === domain.id;
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {DOMAINS.map((domain) => (
+                        <motion.div
+                            key={domain.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onHoverStart={() => setHovered(domain.id)}
+                            onHoverEnd={() => setHovered(null)}
+                            onClick={() => onSelect(domain.id as UserDomain)}
+                            className={cn(
+                                "relative cursor-pointer rounded-2xl border-2 border-border p-6 flex flex-col items-center text-center transition-all duration-300",
+                                domain.bg,
+                                domain.border,
+                                hovered === domain.id ? "shadow-xl" : ""
+                            )}
+                        >
+                            {hovered === domain.id && (
+                                <motion.div
+                                    layoutId="check"
+                                    initial={{ opacity: 0, scale: 0 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    className="absolute top-4 right-4 w-6 h-6 bg-primary rounded-full flex items-center justify-center text-primary-foreground"
+                                >
+                                    <Check className="w-4 h-4" />
+                                </motion.div>
+                            )}
 
-                        return (
-                            <Card
-                                key={domain.id}
-                                className={cn(
-                                    "relative p-4 cursor-pointer transition-all border-2 hover:border-primary/50",
-                                    isSelected ? "border-primary bg-primary/5" : "border-border"
-                                )}
-                                onClick={() => setSelectedDomain(domain.id)}
-                            >
-                                <div className="flex items-start gap-4">
-                                    <div className={cn(
-                                        "p-3 rounded-lg",
-                                        isSelected ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                                    )}>
-                                        <Icon className="h-6 w-6" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <h3 className="font-semibold text-foreground">{domain.label}</h3>
-                                        <p className="text-sm text-muted-foreground mt-1">{domain.description}</p>
-                                    </div>
-                                    {isSelected && (
-                                        <CheckCircle className="h-6 w-6 text-primary absolute top-4 right-4" />
-                                    )}
-                                </div>
-                            </Card>
-                        );
-                    })}
+                            <div className={cn("w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-background shadow-sm", domain.color)}>
+                                <domain.icon className="w-8 h-8" />
+                            </div>
+
+                            <h3 className="font-bold text-xl mb-3">{domain.name}</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                {domain.description}
+                            </p>
+                        </motion.div>
+                    ))}
                 </div>
-
-                <DialogFooter className="flex justify-between sm:justify-between gap-4">
-                    <Button variant="ghost" onClick={onCancel}>
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={handleConfirm}
-                        disabled={!selectedDomain}
-                        className="w-full sm:w-auto min-w-[120px]"
-                    >
-                        Get Started
-                    </Button>
-                </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
+    )
 }

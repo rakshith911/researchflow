@@ -4,23 +4,15 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/stores/auth-store'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { DomainSelectionDialog } from '@/components/onboarding/domain-selection-dialog'
 import { UserDomain } from '@/config/templates'
 import { useSettingsStore } from '@/stores/settings-store'
-import {
-  Brain,
-  FileText,
-  Network,
-  Zap,
-  ArrowRight,
-  CheckCircle,
-  Sparkles,
-  Link2,
-  Clock,
-  Shield
-} from 'lucide-react'
+import { Hero3D } from '@/components/landing/hero-3d'
+import { BentoFeatures } from '@/components/landing/bento-features'
+import { Logo } from '@/components/ui/logo'
+import { motion } from 'framer-motion'
+import { ArrowRight, Sparkles, ChevronRight, Check, X as XIcon } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -36,14 +28,8 @@ export default function HomePage() {
   const handleDomainSelect = async (domain: UserDomain) => {
     setIsLoading(true)
     setShowDomainDialog(false)
-
-    // Set domain preference
     await setUserDomain(domain)
-
-    // Enter guest mode
     enterGuestMode()
-
-    // Small delay for smooth transition
     setTimeout(() => {
       setIsLoading(false)
       router.push('/editor')
@@ -55,28 +41,23 @@ export default function HomePage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background">
+    <div className="flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
       {/* Header */}
-      <header className="border-b bg-background/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold text-foreground">ResearchFlow</span>
-          </div>
+      <header className="fixed top-0 left-0 right-0 z-50 border-b border-border/40 bg-background/60 backdrop-blur-xl">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <Logo animated />
           <div className="flex items-center space-x-4">
             {isAuthenticated ? (
-              <Button onClick={() => router.push('/documents')}>
-                Go to Dashboard
-                <ArrowRight className="ml-2 h-4 w-4" />
+              <Button onClick={() => router.push('/documents')} variant="default" className="rounded-full px-6">
+                Dashboard <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={handleSignIn}>
+                <Button variant="ghost" onClick={handleSignIn} className="rounded-full">
                   Sign In
                 </Button>
-                <Button onClick={handleTryNow} disabled={isLoading}>
+                <Button onClick={handleTryNow} disabled={isLoading} className="rounded-full px-6 shadow-lg shadow-primary/20">
                   {isLoading ? 'Loading...' : 'Try It Free'}
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </>
             )}
@@ -84,219 +65,162 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-primary/5 via-background to-background">
-        <div className="container mx-auto text-center max-w-4xl">
-          <Badge variant="secondary" className="mb-4 bg-primary/10 text-primary border-primary/20">
-            <Sparkles className="w-3 h-3 mr-1" />
-            No Credit Card Required
-          </Badge>
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative min-h-screen pt-24 flex flex-col items-center overflow-hidden">
+          {/* Animated Background Gradients */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <motion.div
+              animate={{
+                scale: [1, 1.2, 1],
+                opacity: [0.3, 0.5, 0.3],
+                x: [0, 50, 0]
+              }}
+              transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute -top-1/2 -left-1/2 w-[100vw] h-[100vw] bg-primary/20 rounded-full blur-[120px]"
+            />
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                opacity: [0.2, 0.4, 0.2],
+                x: [0, -30, 0]
+              }}
+              transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute top-0 right-0 w-[80vw] h-[80vw] bg-blue-500/10 rounded-full blur-[100px]"
+            />
+          </div>
 
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6">
-            Your AI-Powered
-            <span className="text-primary block mt-2">Knowledge Workspace</span>
-          </h1>
+          {/* Text Content */}
+          <div className="container mx-auto px-6 z-20 text-center mt-12 md:mt-24 pointer-events-none">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="pointer-events-auto"
+            >
+            >
+              <div className="relative inline-block mb-10">
+                <h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold tracking-tighter drop-shadow-xl z-20 relative">
+                  Think that <br />
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 animate-gradient-x pb-4 inline-block">
+                    Flows.
+                  </span>
+                </h1>
+              </div>
 
-          <p className="text-xl text-muted-foreground mb-8 leading-relaxed max-w-3xl mx-auto">
-            Connect ideas, discover insights, and build your personal knowledge graph.
-            Perfect for researchers, engineers, and professionals who think in networks.
-          </p>
+              <p className="text-xl md:text-2xl text-foreground/80 max-w-3xl mx-auto mb-12 leading-relaxed font-medium">
+                The first knowledge workspace built for the age of AI. <br className="hidden md:block" />
+                Visualize connections, generate insights, and write at the speed of thought.
+              </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <Button
+                  size="lg"
+                  onClick={handleTryNow}
+                  className="rounded-full h-14 px-8 text-lg bg-primary hover:bg-primary/90 hover:scale-105 transition-all duration-300 shadow-xl shadow-primary/20"
+                >
+                  Start Thinking <ChevronRight className="ml-2" />
+                </Button>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleSignIn}
+                  className="rounded-full h-14 px-8 text-lg bg-background/50 hover:bg-muted/50 backdrop-blur-sm border-2"
+                >
+                  Log In
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* 3D Spline Scene Background */}
+          <div className="absolute inset-0 z-10 opacity-70 pointer-events-none dark:opacity-80">
+            <div className="w-full h-[120vh] -mt-20">
+              <Hero3D />
+            </div>
+          </div>
+
+          {/* Gradient Fade at bottom of hero */}
+          <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-background to-transparent z-20 pointer-events-none" />
+        </section>
+
+        {/* Features Section */}
+        <section className="py-32 bg-secondary/30 relative">
+          <div className="container mx-auto px-6 relative z-10">
+            <div className="text-center mb-20">
+              <h2 className="text-3xl md:text-5xl font-bold mb-6">Built for critical thinkers</h2>
+              <p className="text-muted-foreground max-w-xl mx-auto text-lg">
+                Tools that adapt to your mind, not the other way around.
+              </p>
+            </div>
+
+            <BentoFeatures />
+          </div>
+        </section>
+
+        {/* Feature Comparison Section */}
+        <section className="py-24 bg-background border-t border-border">
+          <div className="container mx-auto px-6 max-w-5xl">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Unlock Full Potential</h2>
+              <p className="text-muted-foreground">Start partially for free, login to go further.</p>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Guest Card */}
+              <div className="p-8 rounded-3xl border border-border bg-card/50 backdrop-blur-sm">
+                <h3 className="text-2xl font-bold mb-2">Guest Access</h3>
+                <p className="text-muted-foreground mb-6">Perfect for trying it out instantly.</p>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Basic Document Editor</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Use Standard Templates</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Local Browser Storage</span></li>
+                  <li className="flex items-center gap-3 opacity-50"><XIcon className="text-red-400 w-5 h-5" /> <span>AI Insights & Links</span></li>
+                  <li className="flex items-center gap-3 opacity-50"><XIcon className="text-red-400 w-5 h-5" /> <span>Knowledge Graph Visualization</span></li>
+                  <li className="flex items-center gap-3 opacity-50"><XIcon className="text-red-400 w-5 h-5" /> <span>PDF Import</span></li>
+                </ul>
+                <Button variant="outline" className="w-full rounded-full" onClick={handleTryNow}>Try Now</Button>
+              </div>
+
+              {/* Pro Card */}
+              <div className="p-8 rounded-3xl border-2 border-primary/20 bg-primary/5 backdrop-blur-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs px-3 py-1 rounded-bl-xl font-bold">RECOMMENDED</div>
+                <h3 className="text-2xl font-bold mb-2 text-primary">Logged In</h3>
+                <p className="text-muted-foreground mb-6">Your permanent knowledge base.</p>
+                <ul className="space-y-4 mb-8">
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Everything in Guest</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>AI Knowledge Graph</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Generate Templates from PDFs</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Smart Contextual Links</span></li>
+                  <li className="flex items-center gap-3"><Check className="text-green-500 w-5 h-5" /> <span>Cloud Sync & Backup</span></li>
+                </ul>
+                <Button className="w-full rounded-full" onClick={() => router.push('/register')}>Create Free Account</Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-primary/5 -skew-y-3 transform origin-bottom-right" />
+          <div className="container mx-auto px-6 text-center relative z-10">
+            <h2 className="text-4xl md:text-6xl font-bold mb-8">Ready to evolve?</h2>
             <Button
               size="lg"
               onClick={handleTryNow}
-              disabled={isLoading}
-              className="text-lg px-8 py-6 h-auto"
+              className="rounded-full h-16 px-10 text-xl shadow-2xl hover:scale-105 transition-all"
             >
-              {isLoading ? 'Starting...' : '🚀 Try It Now - No Sign Up'}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-
-            <Button
-              size="lg"
-              variant="outline"
-              onClick={() => router.push('/register')}
-              className="text-lg px-8 py-6 h-auto"
-            >
-              Create Free Account
+              Get Started Now
             </Button>
           </div>
+        </section>
+      </main>
 
-          <p className="text-sm text-muted-foreground mt-4">
-            ✨ Start using immediately • 💾 No installation required • 🔒 Your data stays private
-          </p>
+      <footer className="py-8 border-t border-border bg-card text-center text-muted-foreground text-sm">
+        <div className="flex items-center justify-center gap-2 mb-4">
+          <Logo className="scale-75" />
         </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="py-20 px-4 bg-background">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4">
-              Everything You Need to Think Better
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Built for professionals who need more than just a note-taking app
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
-              <CardHeader className="pb-4">
-                <Brain className="h-10 w-10 text-blue-600 dark:text-blue-400 mb-2" />
-                <CardTitle className="text-lg text-card-foreground">AI-Powered Insights</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-muted-foreground">
-                  Get intelligent suggestions, auto-tagging, and context-aware recommendations as you work
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
-              <CardHeader className="pb-4">
-                <Network className="h-10 w-10 text-green-600 dark:text-green-400 mb-2" />
-                <CardTitle className="text-lg text-card-foreground">Knowledge Graph</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-muted-foreground">
-                  Visualize connections between your documents and discover hidden relationships
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
-              <CardHeader className="pb-4">
-                <Link2 className="h-10 w-10 text-purple-600 dark:text-purple-400 mb-2" />
-                <CardTitle className="text-lg text-card-foreground">Wiki-Style Links</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-muted-foreground">
-                  Create bidirectional links between notes with simple [[wiki syntax]]
-                </CardDescription>
-              </CardContent>
-            </Card>
-
-            <Card className="border-2 hover:border-primary/50 transition-colors bg-card">
-              <CardHeader className="pb-4">
-                <Zap className="h-10 w-10 text-orange-600 dark:text-orange-400 mb-2" />
-                <CardTitle className="text-lg text-card-foreground">Smart Templates</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <CardDescription className="text-muted-foreground">
-                  Start fast with templates for research, engineering, healthcare, and more
-                </CardDescription>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Why Choose Section */}
-      <section className="py-20 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-4xl">
-          <h2 className="text-3xl font-bold text-center mb-12 text-foreground">
-            Why Professionals Choose ResearchFlow
-          </h2>
-
-          <div className="space-y-6">
-            <div className="flex items-start gap-4 p-6 rounded-lg bg-background border">
-              <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                <FileText className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2 text-foreground">
-                  All Your Work in One Place
-                </h3>
-                <p className="text-muted-foreground">
-                  Stop juggling between apps. ResearchFlow consolidates research notes, technical docs,
-                  meeting minutes, and project plans in a unified workspace.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 p-6 rounded-lg bg-background border">
-              <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                <Clock className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2 text-foreground">
-                  Save Hours Every Week
-                </h3>
-                <p className="text-muted-foreground">
-                  AI-powered automation handles tagging, categorization, and connecting related content.
-                  Focus on thinking, not organizing.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4 p-6 rounded-lg bg-background border">
-              <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                <Shield className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-lg mb-2 text-foreground">
-                  Your Data, Your Control
-                </h3>
-                <p className="text-muted-foreground">
-                  End-to-end encryption, local-first architecture, and full data export.
-                  Your intellectual property stays yours.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20 px-4 bg-primary/5">
-        <div className="container mx-auto max-w-3xl text-center">
-          <h2 className="text-4xl font-bold mb-6 text-foreground">
-            Ready to Transform Your Workflow?
-          </h2>
-          <p className="text-xl text-muted-foreground mb-8">
-            Join professionals who are thinking better with ResearchFlow
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              onClick={handleTryNow}
-              disabled={isLoading}
-              className="text-lg px-8 py-6 h-auto"
-            >
-              {isLoading ? 'Starting...' : 'Start Free - No Sign Up Required'}
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-          <div className="flex items-center justify-center gap-6 mt-8 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span>Free forever</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span>No credit card</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
-              <span>Cancel anytime</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-muted/30 border-t text-foreground py-8 px-4 mt-auto">
-        <div className="container mx-auto text-center">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Brain className="h-6 w-6 text-primary" />
-            <span className="text-xl font-bold">ResearchFlow</span>
-          </div>
-          <p className="text-muted-foreground">
-            AI-powered knowledge workspace for professionals
-          </p>
-        </div>
+        <p>© 2025 ResearchFlow. Crafted for the future.</p>
       </footer>
 
       <DomainSelectionDialog
@@ -304,6 +228,6 @@ export default function HomePage() {
         onSelect={handleDomainSelect}
         onCancel={() => setShowDomainDialog(false)}
       />
-    </div>
+    </div >
   )
 }
