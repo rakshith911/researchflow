@@ -27,7 +27,11 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Sparkles,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Microscope,
+  Cpu,
+  Stethoscope,
+  Users
 } from 'lucide-react'
 
 export function DocumentEditor() {
@@ -51,9 +55,9 @@ export function DocumentEditor() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [editorTheme, setEditorTheme] = useState<'light' | 'dark'>('light')
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
-  
+
   const editorRef = useRef<any>(null)
-  
+
   const {
     analysis,
     isAnalyzing,
@@ -76,14 +80,14 @@ export function DocumentEditor() {
     if (!settings) return
 
     const isDark = settings.theme === 'dark' ||
-                  (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
+      (settings.theme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
 
     setEditorTheme(isDark ? 'dark' : 'light')
   }, [settings])
 
   const handleLinksChange = async (content: string) => {
     if (!currentDocument) return
-    
+
     try {
       await fetch(`http://localhost:5000/api/documents/${currentDocument.id}/update-links`, {
         method: 'POST',
@@ -111,7 +115,7 @@ export function DocumentEditor() {
       setCurrentDocument(doc)
     }
   }
-  
+
   const handleCreateDocument = async (type: any = 'general', template?: string) => {
     try {
       await createDocument(type, template)
@@ -133,7 +137,7 @@ export function DocumentEditor() {
       const id = { major: 1, minor: 1 }
       const op = { identifier: id, range, text: markdown, forceMoveMarkers: true }
       editor.executeEdits('toolbar', [op])
-      
+
       const newContent = editor.getValue()
       updateDocumentContent(newContent)
     } else {
@@ -150,11 +154,11 @@ export function DocumentEditor() {
     const editor = editorRef.current
     const selection = editor.getSelection()
     const model = editor.getModel()
-    
+
     if (!selection || !model) return
 
     const selectedText = model.getValueInRange(selection)
-    
+
     if (selectedText) {
       // Wrap selected text
       const wrappedText = `${before}${selectedText}${after}`
@@ -168,7 +172,7 @@ export function DocumentEditor() {
       const id = { major: 1, minor: 1 }
       const op = { identifier: id, range: selection, text: wrappedText, forceMoveMarkers: true }
       editor.executeEdits('keyboard', [op])
-      
+
       // Select the placeholder
       const newPosition = selection.getStartPosition()
       editor.setSelection({
@@ -178,42 +182,42 @@ export function DocumentEditor() {
         endColumn: newPosition.column + before.length + placeholder.length
       })
     }
-    
+
     const newContent = editor.getValue()
     updateDocumentContent(newContent)
     editor.focus()
   }
-  
+
   useEffect(() => {
     if (currentDocument && autoSaveState.hasUnsavedChanges) {
       const timer = setTimeout(() => {
         saveDocument()
       }, 2000)
-      
+
       return () => clearTimeout(timer)
     }
   }, [currentDocument?.content, autoSaveState.hasUnsavedChanges])
-  
+
   // ✅ UPDATED: Add keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
       const cmdKey = isMac ? e.metaKey : e.ctrlKey
-      
+
       // Cmd/Ctrl + S: Save
       if (cmdKey && e.key === 's') {
         e.preventDefault()
         saveDocument()
         return
       }
-      
+
       // Cmd/Ctrl + P: Toggle Preview
       if (cmdKey && e.key === 'p') {
         e.preventDefault()
         setShowPreview(!showPreview)
         return
       }
-      
+
       // F11: Toggle Fullscreen
       if (e.key === 'F11') {
         e.preventDefault()
@@ -292,54 +296,95 @@ export function DocumentEditor() {
         return
       }
     }
-    
+
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [showPreview, isFullscreen, currentDocument, saveDocument])
-  
-  // ✅ FIXED: Empty state with proper dark mode support
+
+  // ✅ FIXED: Premium Empty State
   if (!currentDocument) {
     return (
-      <div className="flex items-center justify-center h-full bg-gradient-to-br from-primary/5 via-background to-background">
-        <Card className="w-96 shadow-lg bg-card border-border">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="p-4 bg-primary/10 rounded-full">
-                <FileText className="h-12 w-12 text-primary" />
+      <div className="flex items-center justify-center h-full bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background relative overflow-hidden">
+        {/* Ambient Background Effects */}
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl" />
+
+        <div className="relative z-10 p-8 max-w-lg w-full">
+          <div className="bg-background/40 backdrop-blur-xl border border-white/10 rounded-3xl shadow-2xl p-8 text-center space-y-8">
+
+            {/* Hero Icon */}
+            <div className="relative mx-auto w-24 h-24">
+              <div className="absolute inset-0 bg-gradient-to-tr from-purple-500 to-blue-500 rounded-2xl blur-lg opacity-40 animate-pulse" />
+              <div className="relative w-full h-full bg-background border border-white/10 rounded-2xl flex items-center justify-center shadow-inner">
+                <FileText className="h-10 w-10 text-foreground" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-foreground">Welcome to ResearchFlow</CardTitle>
-            <p className="text-muted-foreground mt-2">
-              Create your first document to experience intelligent productivity
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => setShowTemplateSelector(true)} 
-              size="lg" 
-              className="w-full"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create New Document
-            </Button>
-            
-            <div className="grid grid-cols-2 gap-2">
-              <Button variant="outline" size="sm" onClick={() => handleCreateDocument('research')}>
-                Research
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleCreateDocument('engineering')}>
-                Engineering
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleCreateDocument('healthcare')}>
-                Healthcare
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => handleCreateDocument('meeting')}>
-                Meeting
-              </Button>
+
+            {/* Text */}
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+                Welcome to ResearchFlow
+              </h1>
+              <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                Your intelligent workspace for research, engineering, and discovery.
+              </p>
             </div>
-          </CardContent>
-        </Card>
-        
+
+            {/* Key Actions */}
+            <div className="space-y-4">
+              <Button
+                onClick={() => setShowTemplateSelector(true)}
+                size="lg"
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg shadow-purple-500/25 rounded-xl font-medium transition-all hover:scale-[1.02]"
+              >
+                <Plus className="h-5 w-5 mr-2" />
+                Create New Document
+              </Button>
+
+              {/* Quick Starters */}
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => handleCreateDocument('research')}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-accent/50 transition-colors text-left group"
+                >
+                  <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 group-hover:bg-blue-500/20 transition-colors">
+                    <Microscope className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium">Research</span>
+                </button>
+
+                <button
+                  onClick={() => handleCreateDocument('engineering')}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-accent/50 transition-colors text-left group"
+                >
+                  <div className="p-2 rounded-lg bg-green-500/10 text-green-500 group-hover:bg-green-500/20 transition-colors">
+                    <Cpu className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium">Engineering</span>
+                </button>
+                <button
+                  onClick={() => handleCreateDocument('healthcare')}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-accent/50 transition-colors text-left group"
+                >
+                  <div className="p-2 rounded-lg bg-red-500/10 text-red-500 group-hover:bg-red-500/20 transition-colors">
+                    <Stethoscope className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium">Healthcare</span>
+                </button>
+                <button
+                  onClick={() => handleCreateDocument('meeting')}
+                  className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/50 hover:bg-accent/50 transition-colors text-left group"
+                >
+                  <div className="p-2 rounded-lg bg-purple-500/10 text-purple-500 group-hover:bg-purple-500/20 transition-colors">
+                    <Users className="h-4 w-4" />
+                  </div>
+                  <span className="text-sm font-medium">Meeting</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {showTemplateSelector && (
           <DocumentTemplateSelector
             onSelect={handleCreateDocument}
@@ -349,14 +394,14 @@ export function DocumentEditor() {
       </div>
     )
   }
-  
+
   return (
     <div className={cn("flex flex-col h-full", isFullscreen && "fixed inset-0 z-50 bg-background")}>
-      <DocumentToolbar 
+      <DocumentToolbar
         onInsertMarkdown={handleInsertMarkdown}
         documentId={currentDocument.id}
       />
-      
+
       {/* ✅ FIXED: Document header bar */}
       <div className="flex items-center justify-between p-4 border-b bg-background">
         <div className="flex items-center space-x-4 flex-1">
@@ -369,7 +414,7 @@ export function DocumentEditor() {
           <Badge variant="outline" className="capitalize">{currentDocument.type}</Badge>
           <Badge variant="secondary" className="text-xs">v{currentDocument.version}</Badge>
         </div>
-        
+
         <div className="flex items-center space-x-2">
           <Button
             variant="outline"
@@ -398,11 +443,11 @@ export function DocumentEditor() {
           >
             {showAssistant ? <><PanelRightClose className="h-4 w-4 mr-2" />Hide Assistant</> : <><PanelRightOpen className="h-4 w-4 mr-2" />Show Assistant</>}
           </Button>
-          
+
           <Button variant="outline" size="sm" onClick={() => setIsFullscreen(!isFullscreen)} title="Toggle Fullscreen (F11)">
             {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -414,7 +459,7 @@ export function DocumentEditor() {
           </Button>
         </div>
       </div>
-      
+
       {/* ✅ FIXED: Status bar */}
       <div className="flex items-center justify-between px-4 py-2 border-b bg-muted text-sm text-muted-foreground">
         <div className="flex items-center space-x-4">
@@ -425,7 +470,7 @@ export function DocumentEditor() {
             <span>Tags: {currentDocument.tags.slice(0, 3).join(', ')}</span>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-2">
           {autoSaveState.isAutoSaving && (
             <div className="flex items-center text-primary">
@@ -444,7 +489,7 @@ export function DocumentEditor() {
           )}
         </div>
       </div>
-      
+
       <ResizableEditorLayout
         showPreview={showPreview}
         showAssistant={showAssistant}
@@ -458,7 +503,7 @@ export function DocumentEditor() {
                 />
               </div>
             )}
-            <MonacoEditorWithLinks 
+            <MonacoEditorWithLinks
               value={currentDocument.content}
               onChange={updateDocumentContent}
               onLinksChange={handleLinksChange}
@@ -476,7 +521,7 @@ export function DocumentEditor() {
                 <PanelRightClose className="h-3 w-3" />
               </Button>
             </div>
-            <MarkdownPreview 
+            <MarkdownPreview
               content={currentDocument.content}
               onNavigateToDocument={handleNavigateToDocumentByTitle}
               className="flex-1 overflow-auto"

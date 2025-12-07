@@ -25,20 +25,29 @@ export default function DashboardLayout({
 
   return (
     <ProtectedRoute requireAuth={false}>
-      <div className="flex h-screen overflow-hidden">
+      <div className="flex h-screen w-full bg-background overflow-hidden relative">
+        {/* Floating Sidebar */}
         <DashboardSidebar
           isOpen={isSidebarOpen}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
         />
-        <main className="flex-1 overflow-y-auto bg-background">
-          {/* ✅ Guest mode banner */}
-          <div className="sticky top-0 z-40 p-4 pb-0">
+
+        {/* Main Content Area */}
+        <main className="flex-1 h-full overflow-hidden flex flex-col relative z-0">
+          {/* Background Gradients */}
+          <div className="absolute top-[-20%] right-[-10%] w-[500px] h-[500px] bg-purple-500/5 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute bottom-[-10%] left-[10%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none" />
+
+          {/* Guest Banner */}
+          <div className="flex-none px-6 pt-6 z-10">
             <GuestBanner />
           </div>
-          
-          {children}
-          
-          {/* ✅ Save progress modal */}
+
+          {/* Scrollable Page Content */}
+          <div className="flex-1 overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-border/50">
+            {children}
+          </div>
+
           <SaveProgressModal />
         </main>
       </div>

@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { DocumentListSkeleton } from '@/components/documents/document-list-skeleton'
 import { formatRelativeDate } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
-import { 
+import {
   Search,
   Calendar,
   Clock,
@@ -64,26 +64,26 @@ interface DocumentListProps {
   className?: string
 }
 
-export function DocumentList({ 
-  onSelectDocument, 
+export function DocumentList({
+  onSelectDocument,
   searchResults = null,
-  viewMode = 'list', 
-  className 
+  viewMode = 'list',
+  className
 }: DocumentListProps) {
   // ✅ FIXED: Only get functions that exist in the store
-  const { 
-    documents, 
-    deleteDocument, 
+  const {
+    documents,
+    deleteDocument,
     updateDocument,  // ✅ Use this for renaming
     createDocument,  // ✅ Use this for duplicating
     toggleFavorite,
-    currentDocument, 
-    isLoading: storeIsLoading 
+    currentDocument,
+    isLoading: storeIsLoading
   } = useDocumentStore()
-  
+
   // ✅ FIXED: Manage selection locally
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
-  
+
   const [localSearchQuery, setLocalSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<string>('all')
   const [selectedTag, setSelectedTag] = useState<string>('all')
@@ -99,8 +99,8 @@ export function DocumentList({
 
   // ✅ FIXED: Local selection management functions
   const toggleDocumentSelection = (id: string) => {
-    setSelectedDocumentIds(prev => 
-      prev.includes(id) 
+    setSelectedDocumentIds(prev =>
+      prev.includes(id)
         ? prev.filter(docId => docId !== id)
         : [...prev, id]
     )
@@ -128,7 +128,7 @@ export function DocumentList({
   const duplicateDocument = async (id: string) => {
     const doc = (documents || []).find(d => d.id === id)
     if (!doc) return
-    
+
     try {
       await createDocument(doc.type, doc.content)
     } catch (error) {
@@ -186,14 +186,14 @@ export function DocumentList({
 
     if (searchResults === null) {
       docs = docs.filter(doc => {
-        const matchesSearch = localSearchQuery === '' || 
+        const matchesSearch = localSearchQuery === '' ||
           doc.title.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           doc.content.toLowerCase().includes(localSearchQuery.toLowerCase()) ||
           (doc.tags || []).some((tag: string) => tag.toLowerCase().includes(localSearchQuery.toLowerCase()))
-        
+
         const matchesType = selectedType === 'all' || doc.type === selectedType
         const matchesTag = selectedTag === 'all' || (doc.tags || []).includes(selectedTag)
-        
+
         return matchesSearch && matchesType && matchesTag
       })
     }
@@ -265,7 +265,7 @@ export function DocumentList({
 
   const submitRename = async () => {
     if (!newTitle.trim()) return
-    
+
     setIsRenaming(true)
     try {
       await renameDocument(renameDocId, newTitle.trim())
@@ -313,7 +313,7 @@ export function DocumentList({
 
   const handleBulkDelete = async () => {
     if (selectedDocumentIds.length === 0) return
-    
+
     if (window.confirm(`Are you sure you want to delete ${selectedDocumentIds.length} document(s)?`)) {
       try {
         await bulkDelete(selectedDocumentIds)
@@ -325,10 +325,10 @@ export function DocumentList({
 
   const handleBulkAddTags = async () => {
     if (selectedDocumentIds.length === 0 || !bulkTagsInput.trim()) return
-    
+
     const tags = bulkTagsInput.split(',').map(t => t.trim()).filter(t => t)
     if (tags.length === 0) return
-    
+
     try {
       await bulkAddTags(selectedDocumentIds, tags)
       setBulkTagsDialogOpen(false)
@@ -375,19 +375,9 @@ export function DocumentList({
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
-      {/* Local Search and Filters */}
+      {/* Local Filters (Search removed) */}
       {showLocalSearch && (
         <div className="p-4 border-b space-y-4">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Quick search in list..."
-              value={localSearchQuery}
-              onChange={(e) => setLocalSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
           <div className="flex flex-wrap gap-2">
             <select
               value={selectedType}
@@ -401,7 +391,7 @@ export function DocumentList({
                 </option>
               ))}
             </select>
-            
+
             {allTags.length > 0 && (
               <select
                 value={selectedTag}
@@ -416,7 +406,7 @@ export function DocumentList({
                 ))}
               </select>
             )}
-            
+
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as any)}
@@ -459,7 +449,7 @@ export function DocumentList({
           </div>
         </div>
       )}
-      
+
       {/* Bulk Actions Bar */}
       {selectedDocumentIds.length > 0 && (
         <div className="px-4 py-2 border-b bg-muted/30">
@@ -467,7 +457,7 @@ export function DocumentList({
             <span className="text-primary font-medium">
               {selectedDocumentIds.length} selected
             </span>
-            
+
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
@@ -531,7 +521,7 @@ export function DocumentList({
                       onClick={(e) => e.stopPropagation()}
                       disabled={isOperating(doc.id)}
                     />
-                    
+
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-4 mb-2">
                         <div className="flex-1 min-w-0">
@@ -546,7 +536,7 @@ export function DocumentList({
                             {doc.content.substring(0, 150) || 'No content yet...'}
                           </p>
                         </div>
-                        
+
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                             <Button variant="ghost" size="sm" disabled={isOperating(doc.id)}>
@@ -571,7 +561,7 @@ export function DocumentList({
                               {doc.isFavorite ? 'Unfavorite' : 'Favorite'}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               onClick={(e) => handleDeleteDocument(doc.id, e)}
                               className="text-destructive focus:text-destructive"
                             >
@@ -581,7 +571,7 @@ export function DocumentList({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-                      
+
                       <div className="flex items-center gap-4 text-xs text-muted-foreground">
                         <Badge variant="outline" className={cn("text-xs", getTypeColor(doc.type))}>
                           {doc.type}
@@ -660,7 +650,7 @@ export function DocumentList({
                           {doc.isFavorite ? 'Unfavorite' : 'Favorite'}
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           onClick={(e) => handleDeleteDocument(doc.id, e)}
                           className="text-destructive focus:text-destructive"
                         >
@@ -685,7 +675,7 @@ export function DocumentList({
                         {doc.content.substring(0, 100) || 'No content yet...'}
                       </p>
                     </div>
-                    
+
                     <div className="flex flex-col gap-2 text-xs text-muted-foreground">
                       <div className="flex items-center justify-between">
                         <Badge variant="outline" className={cn("text-xs", getTypeColor(doc.type))}>

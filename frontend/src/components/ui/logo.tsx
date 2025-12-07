@@ -6,9 +6,10 @@ import { cn } from '@/lib/utils'
 interface LogoProps {
     className?: string
     animated?: boolean
+    showText?: boolean
 }
 
-export function Logo({ className, animated = false }: LogoProps) {
+export function Logo({ className, animated = false, showText = true }: LogoProps) {
     return (
         <div className={cn("flex items-center gap-2", className)}>
             <svg
@@ -57,7 +58,7 @@ export function Logo({ className, animated = false }: LogoProps) {
                     transition={{ duration: 0.5, delay: 0.6 }}
                 />
             </svg>
-            <span className="font-bold text-xl tracking-tight">ResearchFlow</span>
+            {showText && <span className="font-bold text-xl tracking-tight">ResearchFlow</span>}
         </div>
     )
 }
