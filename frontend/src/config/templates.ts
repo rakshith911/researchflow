@@ -1,3 +1,4 @@
+import { FileText, Microscope, Stethoscope, ClipboardList, BookOpen, Activity, Calendar } from 'lucide-react';
 
 export type UserDomain = 'research' | 'medical' | 'general';
 
