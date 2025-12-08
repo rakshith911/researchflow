@@ -10,7 +10,7 @@ export async function initializeDatabase(): Promise<Database> {
   if (db) return db
 
   const dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'researchflow.db')
-  
+
   try {
     db = await open({
       filename: dbPath,
@@ -18,7 +18,7 @@ export async function initializeDatabase(): Promise<Database> {
     })
 
     logger.info(`Database connected: ${dbPath}`)
-    
+
     // First create migrations table if it doesn't exist
     await db.exec(`
       CREATE TABLE IF NOT EXISTS migrations (
@@ -27,13 +27,13 @@ export async function initializeDatabase(): Promise<Database> {
         applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `)
-    
+
     // Then run migrations before creating tables
     await runMigrations()
-    
+
     // Finally create/verify all tables
     await createTables()
-    
+
     return db
   } catch (error) {
     logger.error('Failed to initialize database:', error)
@@ -73,7 +73,7 @@ async function runMigrations() {
           if (!columnNames.includes('last_accessed_at')) {
             await db!.exec('ALTER TABLE documents ADD COLUMN last_accessed_at DATETIME;')
             logger.info('Added last_accessed_at column to documents table')
-            
+
             // Initialize last_accessed_at for existing documents
             await db!.exec(`
               UPDATE documents 
@@ -218,6 +218,37 @@ async function runMigrations() {
           logger.info('Migration 003_add_shared_with_user_id completed successfully')
         } catch (error) {
           logger.error('Error in migration 003:', error)
+          throw error
+        }
+      }
+    },
+    {
+      name: '004_add_chat_history',
+      up: async () => {
+        try {
+          logger.info('Running migration: 004_add_chat_history')
+
+          await db!.exec(`
+            CREATE TABLE IF NOT EXISTS chat_messages (
+              id TEXT PRIMARY KEY,
+              document_id TEXT NOT NULL,
+              user_id TEXT,
+              role TEXT NOT NULL CHECK(role IN ('user', 'assistant', 'system')),
+              content TEXT NOT NULL,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE CASCADE,
+              FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+          `)
+
+          await db!.exec(`
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_document_id ON chat_messages(document_id);
+            CREATE INDEX IF NOT EXISTS idx_chat_messages_created_at ON chat_messages(created_at);
+          `)
+
+          logger.info('Migration 004_add_chat_history completed successfully')
+        } catch (error) {
+          logger.error('Error in migration 004:', error)
           throw error
         }
       }

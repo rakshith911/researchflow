@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { debounce } from 'lodash'
 import { apiClient } from '@/lib/api-client'
+import { useAuthStore } from '@/stores/auth-store'
 
 interface LinkSuggestion {
   documentId: string
@@ -16,6 +17,11 @@ interface WritingSuggestion {
   type: 'structure' | 'content' | 'quality' | 'link'
   message: string
   priority: 'high' | 'medium' | 'low'
+}
+
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
 }
 
 interface WritingAnalysis {
@@ -43,7 +49,25 @@ export function useSmartWriting({
   const [analysis, setAnalysis] = useState<WritingAnalysis | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [initialChatHistory, setInitialChatHistory] = useState<ChatMessage[]>([])
+
   const abortControllerRef = useRef<AbortController | null>(null)
+  const { isAuthenticated } = useAuthStore()
+
+  // Load chat history when document changes
+  useEffect(() => {
+    if (isAuthenticated && documentId) {
+      apiClient.get<ChatMessage[]>(`/api/chat/${documentId}/history`)
+        .then(result => {
+          if (result.success && result.data) {
+            setInitialChatHistory(result.data);
+          }
+        })
+        .catch(err => console.error("Failed to load chat history", err));
+    } else {
+      setInitialChatHistory([]);
+    }
+  }, [documentId, isAuthenticated]);
 
   const analyzeContent = useCallback(async (content: string) => {
     // Don't analyze if content is too short
@@ -124,7 +148,28 @@ export function useSmartWriting({
     analysis,
     isAnalyzing,
     error,
+    initialChatHistory, // Return history
     analyzeContent: debouncedAnalyze,
-    suggestLinksForSelection
+    suggestLinksForSelection,
+
+    // Chat functionality
+    sendChatMessage: async (messages: ChatMessage[], documentContext: string) => {
+      try {
+        const result = await apiClient.post<any>('/api/chat', {
+          messages,
+          documentContext,
+          documentType,
+          documentId // Send documentId for persistence
+        });
+        if (result.success) {
+          return result.data.message;
+        } else {
+          throw new Error(result.error || 'Chat failed');
+        }
+      } catch (error) {
+        console.error("Chat error:", error);
+        throw error;
+      }
+    }
   }
 }

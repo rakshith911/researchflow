@@ -62,6 +62,8 @@ export function DocumentEditor() {
     analysis,
     isAnalyzing,
     analyzeContent,
+    sendChatMessage,
+    initialChatHistory
   } = useSmartWriting({
     documentId: currentDocument?.id || '',
     documentType: currentDocument?.type || 'general',
@@ -543,7 +545,9 @@ export function DocumentEditor() {
               <SmartWritingAssistant
                 analysis={analysis}
                 isAnalyzing={isAnalyzing}
+                initialMessages={initialChatHistory} // Pass history
                 onDocumentClick={handleRelatedDocClick}
+                onSendMessage={(messages) => sendChatMessage(messages, currentDocument?.content || '')}
               />
             </div>
           </div>

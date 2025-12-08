@@ -1,270 +1,262 @@
-'use client'
-
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Progress } from '@/components/ui/progress'
-import { cn } from '@/lib/utils'
+import { useState, useRef, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import {
+  Sparkles,
+  Send,
+  Bot,
+  User,
+  Loader2,
+  TrendingUp,
   Lightbulb,
   Link2,
-  AlertCircle,
-  CheckCircle,
-  TrendingUp,
-  FileText,
-  Sparkles,
-  RefreshCw,
-  ExternalLink
+  FileText
 } from 'lucide-react'
+import { cn } from "@/lib/utils"
 
 interface SmartWritingAssistantProps {
   analysis: any
   isAnalyzing: boolean
-  onDocumentClick: (documentId: string) => void
+  onDocumentClick: (id: string) => void
+  onSendMessage?: (messages: any[]) => Promise<string>
+  initialMessages?: ChatMessage[] // New prop
   className?: string
+}
+
+interface ChatMessage {
+  role: 'system' | 'user' | 'assistant'
+  content: string
 }
 
 export function SmartWritingAssistant({
   analysis,
   isAnalyzing,
   onDocumentClick,
+  onSendMessage,
+  initialMessages = [], // Default to empty
   className
 }: SmartWritingAssistantProps) {
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'high':
-        return <AlertCircle className="h-4 w-4 text-red-500" />
-      case 'medium':
-        return <Lightbulb className="h-4 w-4 text-yellow-500" />
-      case 'low':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      default:
-        return <Lightbulb className="h-4 w-4" />
+  const [activeTab, setActiveTab] = useState("analysis")
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages) // Initialize with history
+  const [inputValue, setInputValue] = useState("")
+  const [isChatting, setIsChatting] = useState(false)
+  const chatScrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight
+    }
+  }, [messages])
+
+  // Sync state with prop
+  useEffect(() => {
+    if (initialMessages && initialMessages.length > 0) {
+      setMessages(initialMessages)
+    }
+  }, [initialMessages])
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !onSendMessage) return
+
+    const newMessage: ChatMessage = { role: 'user', content: inputValue }
+    const updatedMessages = [...messages, newMessage]
+
+    setMessages(updatedMessages)
+    setInputValue("")
+    setIsChatting(true)
+
+    try {
+      const response = await onSendMessage(updatedMessages)
+      setMessages(prev => [...prev, { role: 'assistant', content: response }])
+    } catch (error) {
+      console.error("Chat error:", error)
+      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error receiving the response." }])
+    } finally {
+      setIsChatting(false)
     }
   }
 
   const getQualityColor = (score: number) => {
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-yellow-600'
-    return 'text-red-600'
+    if (score >= 80) return "bg-green-500/10 text-green-500 border-green-500/20"
+    if (score >= 60) return "bg-yellow-500/10 text-yellow-500 border-yellow-500/20"
+    return "bg-red-500/10 text-red-500 border-red-500/20"
   }
 
-  const getQualityLabel = (score: number) => {
-    if (score >= 80) return 'Excellent'
-    if (score >= 60) return 'Good'
-    if (score >= 40) return 'Fair'
-    return 'Needs Improvement'
-  }
-
-  if (isAnalyzing) {
-    return (
-      <Card className={cn("w-80", className)}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center">
-            <Sparkles className="h-4 w-4 mr-2 animate-pulse" />
-            Analyzing...
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!analysis) {
-    return (
-      <Card className={cn("w-80", className)}>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Writing Assistant
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Start writing to get intelligent suggestions and insights.
-          </p>
-        </CardContent>
-      </Card>
-    )
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
   }
 
   return (
-    <div className={cn("w-80 space-y-4", className)}>
-      {/* Quality Score Card */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center justify-between">
-            <div className="flex items-center">
-              <TrendingUp className="h-4 w-4 mr-2" />
-              Content Quality
-            </div>
-            <Badge variant="outline" className={getQualityColor(analysis.qualityScore)}>
-              {analysis.qualityScore}/100
-            </Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Overall Score</span>
-              <span className={cn("font-medium", getQualityColor(analysis.qualityScore))}>
-                {getQualityLabel(analysis.qualityScore)}
-              </span>
-            </div>
-            <Progress value={analysis.qualityScore} className="h-2" />
-          </div>
+    <div className={cn("flex flex-col h-full", className)}>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col h-full">
+        <div className="px-4 pt-2">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="analysis">Analysis</TabsTrigger>
+            <TabsTrigger value="chat">Assistant</TabsTrigger>
+          </TabsList>
+        </div>
 
-          <div>
-            <div className="flex items-center justify-between text-sm mb-1">
-              <span className="text-muted-foreground">Readability</span>
-              <span className="font-medium">{analysis.readabilityScore.toFixed(0)}/100</span>
-            </div>
-            <Progress value={analysis.readabilityScore} className="h-2" />
-          </div>
-
-          {analysis.professionalTerms.length > 0 && (
-            <div className="pt-2 border-t">
-              <p className="text-xs text-muted-foreground mb-2">Professional Terms Used</p>
-              <div className="flex flex-wrap gap-1">
-                {analysis.professionalTerms.slice(0, 4).map((term: string, index: number) => (
-                  <Badge key={index} variant="secondary" className="text-xs">
-                    {term}
-                  </Badge>
-                ))}
-                {analysis.professionalTerms.length > 4 && (
-                  <Badge variant="outline" className="text-xs">
-                    +{analysis.professionalTerms.length - 4}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Suggestions Card */}
-      {analysis.suggestions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                <Lightbulb className="h-4 w-4 mr-2" />
-                Suggestions
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                {analysis.suggestions.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {analysis.suggestions.slice(0, 5).map((suggestion: any, index: number) => (
-                <div
-                  key={index}
-                  className="flex items-start space-x-2 p-2 rounded-lg hover:bg-muted transition-colors"
-                >
-                  <div className="mt-0.5">
-                    {getPriorityIcon(suggestion.priority)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm">{suggestion.message}</p>
-                    <Badge variant="outline" className="text-xs mt-1">
-                      {suggestion.type}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Related Documents Card */}
-      {analysis.relatedDocuments.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <div className="flex items-center">
-                <Link2 className="h-4 w-4 mr-2" />
-                Related Documents
-              </div>
-              <Badge variant="secondary" className="text-xs">
-                {analysis.relatedDocuments.length}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {analysis.relatedDocuments.map((doc: any, index: number) => (
-                <div
-                  key={doc.documentId}
-                  className="p-3 border rounded-lg cursor-pointer hover:bg-muted transition-colors group"
-                  onClick={() => onDocumentClick(doc.documentId)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-2">
-                        <p className="text-sm font-medium truncate group-hover:text-primary">
-                          {doc.title}
-                        </p>
-                        <ExternalLink className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                      </div>
-                      <div className="flex items-center space-x-2 mt-1">
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {doc.type}
-                        </Badge>
-                        <Badge variant="secondary" className="text-xs">
-                          {(doc.relevanceScore * 100).toFixed(0)}% match
-                        </Badge>
-                      </div>
-                      {doc.matchedConcepts.length > 0 && (
-                        <div className="mt-2">
-                          <p className="text-xs text-muted-foreground mb-1">Shared concepts:</p>
-                          <div className="flex flex-wrap gap-1">
-                            {doc.matchedConcepts.slice(0, 3).map((concept: string, i: number) => (
-                              <span key={i} className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">
-                                {concept}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                      <p className="text-xs text-muted-foreground mt-2 line-clamp-2">
-                        {doc.reason}
-                      </p>
+        <TabsContent value="analysis" className="flex-1 overflow-y-auto p-4 space-y-4 data-[state=inactive]:hidden">
+          {isAnalyzing ? (
+            <Card>
+              <CardContent className="py-8 flex flex-col items-center justify-center text-muted-foreground">
+                <Loader2 className="h-8 w-8 animate-spin mb-2" />
+                <p className="text-sm">Analyzing content...</p>
+              </CardContent>
+            </Card>
+          ) : !analysis ? (
+            <Card>
+              <CardContent className="py-8 text-center text-muted-foreground">
+                <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p className="text-sm">Start writing to get AI insights.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Quality Score */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center justify-between">
+                    <div className="flex items-center">
+                      <TrendingUp className="h-4 w-4 mr-2" />
+                      Quality Score
                     </div>
+                    <Badge variant="outline" className={getQualityColor(analysis.qualityScore)}>
+                      {analysis.qualityScore}/100
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-1">
+                  <div className="flex justify-between text-xs text-muted-foreground">
+                    <span>Readability</span>
+                    <span>{analysis.readabilityScore || 0}/100</span>
+                  </div>
+                  <div className="w-full bg-secondary h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-primary h-full transition-all duration-500"
+                      style={{ width: `${analysis.readabilityScore || 0}%` }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Suggestions */}
+              {analysis.suggestions && analysis.suggestions.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center">
+                      <Lightbulb className="h-4 w-4 mr-2" />
+                      Suggestions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {analysis.suggestions.map((suggestion: any, i: number) => (
+                      <div key={i} className="text-sm border-l-2 border-primary/50 pl-3">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium capitalize text-xs text-muted-foreground">{suggestion.type}</span>
+                        </div>
+                        <p className="text-muted-foreground">{suggestion.message}</p>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Related */}
+              {analysis.relatedDocuments && analysis.relatedDocuments.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center">
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Related
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {analysis.relatedDocuments.map((doc: any) => (
+                      <button
+                        key={doc.documentId}
+                        onClick={() => onDocumentClick(doc.documentId)}
+                        className="w-full text-left p-2 rounded hover:bg-muted transition-colors text-sm flex items-start"
+                      >
+                        <FileText className="h-3 w-3 mt-1 mr-2 shrink-0" />
+                        <span className="line-clamp-2">{doc.title}</span>
+                      </button>
+                    ))}
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent value="chat" className="flex-1 flex flex-col h-full overflow-hidden data-[state=inactive]:hidden">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={chatScrollRef}>
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-muted-foreground opacity-50 p-4">
+                <Bot className="h-10 w-10 mb-2" />
+                <p className="text-center text-sm">Ask me anything about your document.<br />"Summarize this", "Fix grammar", etc.</p>
+              </div>
+            ) : (
+              messages.map((msg, i) => (
+                <div key={i} className={cn("flex gap-3", msg.role === 'user' ? "flex-row-reverse" : "flex-row")}>
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0",
+                    msg.role === 'user' ? "bg-primary text-primary-foreground" : "bg-muted"
+                  )}>
+                    {msg.role === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                  </div>
+                  <div className={cn(
+                    "rounded-lg p-3 text-sm max-w-[85%]",
+                    msg.role === 'user'
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-foreground"
+                  )}>
+                    {msg.content}
                   </div>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+              ))
+            )}
+            {isChatting && (
+              <div className="flex gap-3">
+                <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center shrink-0">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="bg-muted rounded-lg p-3">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </div>
+              </div>
+            )}
+          </div>
 
-      {/* Key Topics Card */}
-      {analysis.keyTopics.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center">
-              <FileText className="h-4 w-4 mr-2" />
-              Key Topics
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {analysis.keyTopics.slice(0, 8).map((topic: string, index: number) => (
-                <Badge key={index} variant="outline">
-                  {topic}
-                </Badge>
-              ))}
+          <div className="p-4 border-t bg-background">
+            <div className="relative">
+              <Input
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask AI..."
+                className="pr-10"
+                disabled={isChatting}
+              />
+              <Button
+                size="sm"
+                variant="ghost"
+                className="absolute right-0 top-0 h-full px-3 text-muted-foreground hover:text-primary"
+                onClick={handleSendMessage}
+                disabled={!inputValue.trim() || isChatting}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }

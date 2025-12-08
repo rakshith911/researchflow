@@ -1,6 +1,7 @@
 import nlp from 'compromise'
 import { DocumentService } from '../document/document.service'
 import { ContentAnalyzerService } from './content-analyzer.service'
+import { InsightGeneratorService } from './insight-generator.service'
 
 interface LinkSuggestion {
   documentId: string
@@ -31,10 +32,12 @@ interface WritingSuggestion {
 export class SmartLinkingService {
   private documentService: DocumentService
   private contentAnalyzer: ContentAnalyzerService
+  private insightGenerator: InsightGeneratorService
 
   constructor() {
     this.documentService = new DocumentService()
     this.contentAnalyzer = new ContentAnalyzerService()
+    this.insightGenerator = new InsightGeneratorService()
   }
 
   async analyzeWritingContext(
@@ -62,21 +65,38 @@ export class SmartLinkingService {
       currentContent
     )
 
-    const analysis = this.contentAnalyzer.analyzeContent(currentContent, documentType)
+    // Use AI for deeper analysis if available
+    let aiAnalysis = null
+    try {
+      aiAnalysis = await this.insightGenerator.analyzeDocumentWithAI(currentContent, documentType)
+    } catch (e) {
+      console.warn('AI Analysis failed, falling back to heuristics', e)
+      aiAnalysis = this.contentAnalyzer.analyzeContent(currentContent, documentType) // Fallback
+    }
 
-    const suggestions = this.generateWritingSuggestions(
+    // Fallback to local analysis if AI didn't return suggestions (e.g. OpenAI key missing)
+    const analysis = aiAnalysis || this.contentAnalyzer.analyzeContent(currentContent, documentType)
+
+    // Merge AI suggestions with heuristic linking suggestions
+    const heuristicSuggestions = this.generateWritingSuggestions(
       currentContent,
-      analysis,
+      analysis, // Use the analysis we have (AI or Heuristic)
       documentType,
       relatedDocuments
     )
 
+    // Combine suggestions: AI's + Heuristic Links + Heuristic Structure (if AI missed it)
+    const combinedSuggestions = [
+      ...(analysis.suggestions || []),
+      ...heuristicSuggestions.filter(s => s.type === 'link') // Keep link suggestions
+    ].slice(0, 10) // Limit total suggestions
+
     return {
       qualityScore: analysis.qualityScore,
-      suggestions,
+      suggestions: combinedSuggestions,
       relatedDocuments: relatedDocuments.slice(0, 5),
-      professionalTerms: analysis.professionalTerms,
-      keyTopics: analysis.keyTopics,
+      professionalTerms: analysis.professionalTerms || this.contentAnalyzer.analyzeContent(currentContent, documentType).professionalTerms, // Ensure terms exist
+      keyTopics: analysis.keyTopics || [],
       readabilityScore: analysis.readabilityScore
     }
   }
@@ -327,7 +347,7 @@ export class SmartLinkingService {
     })
 
     const otherDocuments = documents.filter(doc => doc.id !== currentDocumentId)
-    
+
     return this.findRelatedDocuments(concepts, [], otherDocuments, selectedText)
       .slice(0, 3)
   }

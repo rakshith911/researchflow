@@ -1,5 +1,6 @@
 import { ContentAnalyzerService } from './content-analyzer.service'
 import { WorkflowDetectorService } from './workflow-detector.service'
+import { openai, checkOpenAIConfig } from '../../utils/openai-client'
 
 interface SmartRecommendation {
   type: 'productivity' | 'quality' | 'workflow' | 'collaboration' | 'organization'
@@ -27,9 +28,73 @@ export class InsightGeneratorService {
     this.workflowDetector = new WorkflowDetectorService()
   }
 
+  async analyzeDocumentWithAI(content: string, documentType: string = 'general'): Promise<any> {
+    const basicAnalysis = this.contentAnalyzer.analyzeContent(content, documentType)
+
+    // If OpenAI is not configured or content is too short, return basic heuristic analysis
+    if (!checkOpenAIConfig() || content.length < 50) {
+      return {
+        ...basicAnalysis,
+        suggestions: this.contentAnalyzer.identifyContentGaps([{ content, type: documentType, title: 'Current Document' }])
+          .map(gap => ({
+            type: gap.type,
+            message: gap.suggestion,
+            priority: gap.priority
+          }))
+      }
+    }
+
+    try {
+      const completion = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: `You are an expert editor and writing coach specialized in ${documentType} documents.
+            Analyze the provided text and return a JSON object with:
+            - qualityScore (0-100)
+            - readabilityScore (0-100)
+            - keyTopics (array of strings)
+            - suggestions (array of objects with type: 'grammar'|'clarity'|'structure'|'tone', message: string, priority: 'high'|'medium'|'low')
+            
+            Be strict but constructive. exact JSON only.`
+          },
+          {
+            role: "user",
+            content: content.substring(0, 3000) // Truncate for token limits if necessary
+          }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.3,
+      });
+
+      const aiResponse = JSON.parse(completion.choices[0].message.content || '{}');
+
+      return {
+        ...basicAnalysis,
+        qualityScore: aiResponse.qualityScore || basicAnalysis.qualityScore,
+        readabilityScore: aiResponse.readabilityScore || basicAnalysis.readabilityScore,
+        keyTopics: aiResponse.keyTopics && aiResponse.keyTopics.length > 0 ? aiResponse.keyTopics : basicAnalysis.keyTopics,
+        suggestions: aiResponse.suggestions || []
+      }
+    } catch (error) {
+      console.error("AI Analysis failed:", error);
+      // Fallback to basic analysis
+      return {
+        ...basicAnalysis,
+        suggestions: this.contentAnalyzer.identifyContentGaps([{ content, type: documentType, title: 'Current Document' }])
+          .map(gap => ({
+            type: gap.type,
+            message: gap.suggestion,
+            priority: gap.priority
+          }))
+      }
+    }
+  }
+
   generateSmartRecommendations(documents: any[]): SmartRecommendation[] {
     const recommendations: SmartRecommendation[] = []
-    
+
     // Analyze overall patterns
     const productivity = this.analyzeProductivityPatterns(documents)
     const quality = this.analyzeQualityPatterns(documents)
@@ -52,7 +117,7 @@ export class InsightGeneratorService {
   private analyzeProductivityPatterns(documents: any[]): SmartRecommendation[] {
     const recommendations: SmartRecommendation[] = []
     const now = new Date()
-    
+
     // Recent activity analysis
     const recentDocs = documents.filter(doc => {
       const daysSince = (now.getTime() - new Date(doc.updatedAt).getTime()) / (1000 * 60 * 60 * 24)
@@ -98,9 +163,9 @@ export class InsightGeneratorService {
 
   private analyzeQualityPatterns(documents: any[]): SmartRecommendation[] {
     const recommendations: SmartRecommendation[] = []
-    
+
     // Analyze content quality across all documents
-    const qualityScores = documents.map(doc => 
+    const qualityScores = documents.map(doc =>
       this.contentAnalyzer.analyzeContent(doc.content, doc.type).qualityScore
     )
     const avgQuality = qualityScores.reduce((sum, score) => sum + score, 0) / qualityScores.length
@@ -149,7 +214,7 @@ export class InsightGeneratorService {
 
   private analyzeWorkflowPatterns(documents: any[]): SmartRecommendation[] {
     const recommendations: SmartRecommendation[] = []
-    
+
     // Document type diversity
     const typeCount = new Set(documents.map(doc => doc.type)).size
     if (typeCount === 1) {
@@ -171,7 +236,7 @@ export class InsightGeneratorService {
     // Check for professional workflow gaps
     const hasResearch = documents.some(doc => doc.type === 'research')
     const hasMeetings = documents.some(doc => doc.type === 'meeting')
-    
+
     if (!hasMeetings && documents.length > 5) {
       recommendations.push({
         type: 'workflow',
@@ -193,7 +258,7 @@ export class InsightGeneratorService {
 
   private analyzeOrganizationPatterns(documents: any[]): SmartRecommendation[] {
     const recommendations: SmartRecommendation[] = []
-    
+
     // Tag usage analysis
     const taggedDocs = documents.filter(doc => doc.tags && doc.tags.length > 0)
     if (taggedDocs.length < documents.length * 0.5) {
@@ -235,25 +300,25 @@ export class InsightGeneratorService {
 
   identifyWorkflowInsights(documents: any[]): WorkflowInsight[] {
     const insights: WorkflowInsight[] = []
-    
+
     // Time-based patterns
     const timeInsights = this.analyzeTemporalPatterns(documents)
     insights.push(...timeInsights)
-    
+
     // Content patterns
     const contentInsights = this.analyzeContentPatterns(documents)
     insights.push(...contentInsights)
-    
+
     // Professional patterns
     const professionalInsights = this.analyzeProfessionalPatterns(documents)
     insights.push(...professionalInsights)
-    
+
     return insights
   }
 
   private analyzeTemporalPatterns(documents: any[]): WorkflowInsight[] {
     const insights: WorkflowInsight[] = []
-    
+
     // Find documents created in bursts
     const docsByDate = documents.reduce((acc, doc) => {
       const date = new Date(doc.createdAt).toDateString()
@@ -261,10 +326,10 @@ export class InsightGeneratorService {
       acc[date].push(doc)
       return acc
     }, {} as Record<string, any[]>)
-    
+
     const burstDays = (Object.entries(docsByDate) as [string, any[]][])
       .filter(([_, docs]) => docs.length > 3)
-    
+
     if (burstDays.length > 0) {
       insights.push({
         pattern: 'Burst Creation Pattern',
@@ -273,25 +338,25 @@ export class InsightGeneratorService {
         documentsAffected: burstDays.flatMap(([_, docs]) => docs.map((d: any) => d.id))
       })
     }
-    
+
     return insights
   }
 
   private analyzeContentPatterns(documents: any[]): WorkflowInsight[] {
     const insights: WorkflowInsight[] = []
-    
+
     // Find common themes across documents
     const allTags = documents.flatMap(doc => doc.tags || [])
     const tagCounts = allTags.reduce((acc, tag) => {
       acc[tag] = (acc[tag] || 0) + 1
       return acc
     }, {} as Record<string, number>)
-    
+
     const commonTags = (Object.entries(tagCounts) as [string, number][])
       .filter(([_, count]) => count > 2)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
-    
+
     if (commonTags.length > 0) {
       insights.push({
         pattern: 'Recurring Themes',
@@ -302,33 +367,33 @@ export class InsightGeneratorService {
           .map(doc => doc.id)
       })
     }
-    
+
     return insights
   }
 
   private analyzeProfessionalPatterns(documents: any[]): WorkflowInsight[] {
     const insights: WorkflowInsight[] = []
-    
+
     // Analyze domain expertise development
     const researchDocs = documents.filter(doc => doc.type === 'research')
     const engineeringDocs = documents.filter(doc => doc.type === 'engineering')
     const healthcareDocs = documents.filter(doc => doc.type === 'healthcare')
-    
+
     if (researchDocs.length > 5) {
       const avgQuality = researchDocs.reduce((sum, doc) => {
         return sum + this.contentAnalyzer.analyzeContent(doc.content, 'research').qualityScore
       }, 0) / researchDocs.length
-      
+
       insights.push({
         pattern: 'Research Expertise Development',
         description: `You have ${researchDocs.length} research documents with average quality score of ${Math.round(avgQuality)}`,
-        suggestion: avgQuality > 75 ? 
+        suggestion: avgQuality > 75 ?
           'Your research skills are strong. Consider mentoring others or publishing work.' :
           'Focus on improving research methodology and citation practices.',
         documentsAffected: researchDocs.map(doc => doc.id)
       })
     }
-    
+
     return insights
   }
 }
