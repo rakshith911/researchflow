@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useDocumentStore } from '@/stores/document-store'
 import { DocumentTemplateSelector } from '@/components/editor/document-template-selector'
-import { 
+import {
   Menu,
   Search,
   Bell,
@@ -46,7 +46,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
 
   return (
     <>
-      <header className="h-16 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center justify-between px-4">
+      <header className="h-16 flex items-center justify-between px-6 mt-4 mx-6 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-lg z-20 transition-all duration-300 hover:bg-background/50 hover:shadow-xl">
         {/* Left Side */}
         <div className="flex items-center space-x-4">
           <Button
@@ -57,7 +57,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          
+
           <div className="flex items-center space-x-2">
             <Brain className="h-6 w-6 text-primary" />
             <span className="text-lg font-semibold">ResearchFlow</span>
@@ -66,7 +66,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
             </Badge>
           </div>
         </div>
-        
+
         {/* Center - Search */}
         <div className="flex-1 max-w-md mx-4">
           <div className="relative">
@@ -77,21 +77,21 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
             />
           </div>
         </div>
-        
+
         {/* Right Side */}
         <div className="flex items-center space-x-2">
           <Button variant="default" size="sm" className="hidden sm:flex" onClick={handleCreateDocument}>
             <Plus className="h-4 w-4 mr-2" />
             New Document
           </Button>
-          
+
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
               3
             </span>
           </Button>
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon">

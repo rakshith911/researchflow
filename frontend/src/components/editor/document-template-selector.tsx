@@ -1,4 +1,5 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,8 +21,14 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
   const userDomain = useSettingsStore(state => state.settings?.userDomain || 'general')
   const [activeCategory, setActiveCategory] = useState<TemplateCategory | 'all'>('all')
   const [isImporting, setIsImporting] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
+
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   const handleSelectTemplate = (template: DocumentTemplate) => {
     setSelectedTemplate(template)
@@ -97,7 +104,10 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
     return matchesDomain && matchesCategory
   })
 
-  return (
+  // Prevent hydration mismatch and ensure document.body exists
+  if (!mounted) return null
+
+  return createPortal(
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -215,6 +225,7 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
         </div>
 
       </motion.div>
-    </div>
+    </div>,
+    document.body
   )
 }
