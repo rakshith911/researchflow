@@ -46,7 +46,7 @@ export class ChatService {
       `;
 
             const response = await openai.chat.completions.create({
-                model: 'gpt-3.5-turbo',
+                model: 'gpt-5-mini',
                 messages: [
                     { role: 'system', content: systemPrompt },
                     ...messages

@@ -60,7 +60,7 @@ export const importTemplateFromPdf = async (req: Request, res: Response) => {
     `;
 
         const completion = await openai.chat.completions.create({
-            model: "gpt-4o",
+            model: "gpt-5-mini",
             messages: [
                 { role: "system", content: "You are a specialized AI that converts raw PDF streams into perfect Markdown." },
                 { role: "user", content: prompt }
