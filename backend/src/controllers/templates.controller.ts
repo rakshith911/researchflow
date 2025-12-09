@@ -73,11 +73,28 @@ export const importTemplateFromPdf = async (req: Request, res: Response) => {
         // Clean up markdown code blocks if present
         const cleanContent = templateContent.replace(/^```markdown\n/, '').replace(/\n```$/, '');
 
+        // 3. Heuristic Document Type Detection
+        const lowerContent = cleanContent.toLowerCase();
+        let detectedType = 'general';
+
+        if (
+            /education|experience|skills|summary/.test(lowerContent) &&
+            cleanContent.length < 5000
+        ) {
+            detectedType = 'resume';
+        } else if (
+            /abstract|introduction|methodology|conclusion|references/.test(lowerContent) &&
+            cleanContent.length > 2000
+        ) {
+            detectedType = 'research';
+        }
+
         res.json({
             success: true,
             data: {
                 content: cleanContent,
-                originalName: req.file.originalname
+                originalName: req.file.originalname,
+                type: detectedType // Explicitly return detected type
             }
         });
 

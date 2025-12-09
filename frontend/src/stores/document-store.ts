@@ -8,7 +8,7 @@ export interface Document {
   id: string
   title: string
   content: string
-  type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general'
+  type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general' | 'resume'
   tags: string[]
   createdAt: string
   updatedAt: string

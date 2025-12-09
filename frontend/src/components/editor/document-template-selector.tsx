@@ -69,7 +69,7 @@ export function DocumentTemplateSelector({ onSelect, onClose }: DocumentTemplate
           title: "Success",
           description: "Template imported successfully"
         })
-        onSelect('imported-pdf', result.data.content)
+        onSelect(result.data.type || 'imported-pdf', result.data.content)
       } else {
         toast({
           title: "Import failed",

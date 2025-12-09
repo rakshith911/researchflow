@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuthStore } from "@/stores/auth-store"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,7 @@ export function SmartWritingAssistant({
   initialMessages = [], // Default to empty
   className
 }: SmartWritingAssistantProps) {
+  const { isAuthenticated } = useAuthStore()
   const [activeTab, setActiveTab] = useState("analysis")
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages) // Initialize with history
   const [inputValue, setInputValue] = useState("")
@@ -115,6 +117,42 @@ export function SmartWritingAssistant({
               <CardContent className="py-8 text-center text-muted-foreground">
                 <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
                 <p className="text-sm">Start writing to get AI insights.</p>
+              </CardContent>
+            </Card>
+          ) : !isAuthenticated ? (
+            // GUEST LIMITATION VIEW
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Sparkles className="h-4 w-4 mr-2 text-primary" />
+                    Preview Analysis
+                  </div>
+                  <Badge variant="outline" className={getQualityColor(analysis.qualityScore)}>
+                    {analysis.qualityScore}/100
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  You are viewing a limited preview of the Smart Assistant.
+                </p>
+
+                {/* Blurred Sections */}
+                <div className="space-y-3 opacity-50 blur-[2px] pointer-events-none select-none">
+                  <div className="h-4 bg-muted rounded w-3/4"></div>
+                  <div className="h-4 bg-muted rounded w-1/2"></div>
+                  <div className="h-20 bg-muted rounded w-full"></div>
+                </div>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  <Button size="sm" className="w-full" asChild>
+                    <a href="/login">Log in to view detailed insights</a>
+                  </Button>
+                  <p className="text-[10px] text-center text-muted-foreground">
+                    Unlock structure, readability breakdown, and AI improvements.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           ) : (
