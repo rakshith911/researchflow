@@ -34,10 +34,10 @@ export function SaveProgressModal() {
       return
     }
 
-    const docCount = documents?.length || 0
-    if (docCount >= DOCUMENT_THRESHOLD) {
-      setIsOpen(true)
-    }
+    // const docCount = documents?.length || 0
+    // if (docCount >= DOCUMENT_THRESHOLD) {
+    //   setIsOpen(true)
+    // }
   }, [isGuestMode, documents?.length, isDismissedForSession])
 
   const handleDismiss = () => {

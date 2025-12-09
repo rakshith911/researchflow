@@ -55,7 +55,7 @@ export default function DashboardLayout({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.3, ease: "easeInOut" }}
-                className="h-full overflow-y-auto px-6 py-6 scrollbar-thin scrollbar-thumb-border/50"
+                className="h-full overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-border/50"
               >
                 {children}
               </motion.div>

@@ -46,7 +46,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
 
   return (
     <>
-      <header className="h-16 flex items-center justify-between px-6 mt-4 mx-6 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-lg z-20 transition-all duration-300 hover:bg-background/50 hover:shadow-xl">
+      <header className="h-16 flex items-center justify-between px-6 mx-6 rounded-2xl bg-background/40 backdrop-blur-xl border border-white/10 shadow-lg z-20 transition-all duration-300 hover:bg-background/50 hover:shadow-xl">
         {/* Left Side */}
         <div className="flex items-center space-x-4">
           <Button

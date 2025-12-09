@@ -18,6 +18,7 @@ import sharingRoutes from './routes/sharing.routes' // ✅ NEW - Collaboration s
 import commentsRoutes from './routes/comments.routes' // ✅ NEW - Document comments
 import adminRoutes from './routes/admin.routes' // ✅ NEW - Admin routes
 import templatesRoutes from './routes/templates.routes' // ✅ NEW - Template import
+import importRoutes from './routes/import.routes' // ✅ NEW - Import operations
 import chatRoutes from './routes/chat.routes' // ✅ NEW - Chat Assistant
 
 dotenv.config()
@@ -57,6 +58,7 @@ app.use('/api/sharing', sharingRoutes) // ✅ NEW - Share management
 app.use('/api/comments', commentsRoutes) // ✅ NEW - Individual comment operations
 app.use('/api/admin', adminRoutes) // ✅ NEW - Admin operations
 app.use('/api/templates', templatesRoutes) // ✅ NEW - Template operations
+app.use('/api/import', importRoutes) // ✅ NEW - Import operations
 app.use('/api/chat', chatRoutes) // ✅ NEW - Chat Assistant
 
 // Error handling

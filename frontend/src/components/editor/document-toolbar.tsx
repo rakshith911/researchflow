@@ -3,11 +3,11 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Bold, 
-  Italic, 
-  Link, 
-  List, 
+import {
+  Bold,
+  Italic,
+  Link,
+  List,
   ListOrdered,
   Quote,
   Code,
@@ -36,13 +36,15 @@ import { CommentsPanel } from '@/components/collaboration/comments-panel'
 
 interface DocumentToolbarProps {
   onInsertMarkdown?: (markdown: string) => void
+  onFormat?: (before: string, after?: string) => void
   documentId?: string
   documentTitle?: string
   commentCount?: number
 }
 
-export function DocumentToolbar({ 
-  onInsertMarkdown, 
+export function DocumentToolbar({
+  onInsertMarkdown,
+  onFormat,
   documentId,
   documentTitle = 'Untitled Document',
   commentCount = 0
@@ -91,7 +93,7 @@ export function DocumentToolbar({
           >
             <Heading1 className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -100,7 +102,7 @@ export function DocumentToolbar({
           >
             <Heading2 className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -110,22 +112,22 @@ export function DocumentToolbar({
             <Heading3 className="w-4 h-4" />
           </Button>
         </div>
-        
+
         {/* Text Formatting */}
         <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleInsert('**text**')}
+            onClick={() => onFormat ? onFormat('**') : handleInsert('**text**')}
             title="Bold (⌘B)"
           >
             <Bold className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleInsert('*text*')}
+            onClick={() => onFormat ? onFormat('*') : handleInsert('*text*')}
             title="Italic (⌘I)"
           >
             <Italic className="w-4 h-4" />
@@ -134,22 +136,22 @@ export function DocumentToolbar({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleInsert('~~text~~')}
+            onClick={() => onFormat ? onFormat('~~') : handleInsert('~~text~~')}
             title="Strikethrough"
           >
             <Strikethrough className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => handleInsert('`code`')}
+            onClick={() => onFormat ? onFormat('`') : handleInsert('`code`')}
             title="Inline Code"
           >
             <Code className="w-4 h-4" />
           </Button>
         </div>
-        
+
         {/* Lists and Blocks */}
         <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
@@ -160,7 +162,7 @@ export function DocumentToolbar({
           >
             <List className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -169,7 +171,7 @@ export function DocumentToolbar({
           >
             <ListOrdered className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -188,7 +190,7 @@ export function DocumentToolbar({
             <Minus className="w-4 h-4" />
           </Button>
         </div>
-        
+
         {/* Links and Media */}
         <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
@@ -199,7 +201,7 @@ export function DocumentToolbar({
           >
             <Link className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -208,7 +210,7 @@ export function DocumentToolbar({
           >
             <Image className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="ghost"
             size="sm"
@@ -241,7 +243,7 @@ export function DocumentToolbar({
               <Share2 className="w-4 h-4" />
               <span className="text-xs hidden sm:inline">Share</span>
             </Button>
-            
+
             <Button
               variant="ghost"
               size="sm"
@@ -251,8 +253,8 @@ export function DocumentToolbar({
             >
               <MessageSquare className="w-4 h-4" />
               {commentCount > 0 && (
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]"
                 >
                   {commentCount > 99 ? '99+' : commentCount}

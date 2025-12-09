@@ -162,8 +162,25 @@ export function DocumentEditor() {
     const selectedText = model.getValueInRange(selection)
 
     if (selectedText) {
-      // Wrap selected text
-      const wrappedText = `${before}${selectedText}${after}`
+      // ✅ SMART WRAP: Handle whitespace correctly
+      // Parse leading/trailing whitespace so we don't wrap it (which breaks Markdown)
+      const match = selectedText.match(/^(\s*)([\s\S]*?)(\s*)$/)
+
+      let wrappedText = ''
+      if (match) {
+        const [_, leading, content, trailing] = match
+        if (content) {
+          // Wrap only the content, preserve whitespace outside
+          wrappedText = `${leading}${before}${content}${after}${trailing}`
+        } else {
+          // Selection is only whitespace, don't wrap
+          wrappedText = selectedText
+        }
+      } else {
+        // Fallback
+        wrappedText = `${before}${selectedText}${after}`
+      }
+
       const id = { major: 1, minor: 1 }
       const op = { identifier: id, range: selection, text: wrappedText, forceMoveMarkers: true }
       editor.executeEdits('keyboard', [op])
@@ -398,9 +415,10 @@ export function DocumentEditor() {
   }
 
   return (
-    <div className={cn("flex flex-col h-full", isFullscreen && "fixed inset-0 z-50 bg-background")}>
+    <div className={cn("flex flex-col h-full", isFullscreen && "fixed inset-0 z-[100] bg-background")}>
       <DocumentToolbar
         onInsertMarkdown={handleInsertMarkdown}
+        onFormat={wrapSelection}
         documentId={currentDocument.id}
       />
 
