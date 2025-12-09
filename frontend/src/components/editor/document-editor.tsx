@@ -50,7 +50,7 @@ export function DocumentEditor() {
   const { settings } = useSettingsStore()
 
   const [showPreview, setShowPreview] = useState(true)
-  const [showAssistant, setShowAssistant] = useState(true)
+  const [showAssistant, setShowAssistant] = useState(false)
   const [showBacklinks, setShowBacklinks] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [editorTheme, setEditorTheme] = useState<'light' | 'dark'>('light')
@@ -72,10 +72,10 @@ export function DocumentEditor() {
   })
 
   useEffect(() => {
-    if (currentDocument?.content) {
+    if (currentDocument?.content && showAssistant) {
       analyzeContent(currentDocument.content)
     }
-  }, [currentDocument?.content, analyzeContent])
+  }, [currentDocument?.content, analyzeContent, showAssistant])
 
   // Sync editor theme with global theme
   useEffect(() => {
