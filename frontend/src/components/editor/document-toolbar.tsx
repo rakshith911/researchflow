@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useDocumentStore } from "@/stores/document-store"
+import { ExportDialog } from "./export-dialog"
 import {
   Bold,
   Italic,
@@ -24,7 +26,8 @@ import {
   AlignRight,
   Minus,
   Share2,
-  MessageSquare
+  MessageSquare,
+  Download
 } from 'lucide-react'
 import { ImageUploadDialog } from './image-upload-dialog'
 import { LinkInsertDialog } from './link-insert-dialog'
@@ -56,6 +59,9 @@ export function DocumentToolbar({
   const [showShortcutsDialog, setShowShortcutsDialog] = useState(false)
   const [showShareDialog, setShowShareDialog] = useState(false)
   const [showCommentsPanel, setShowCommentsPanel] = useState(false)
+  const [showExportDialog, setShowExportDialog] = useState(false)
+
+  const { currentDocument } = useDocumentStore()
 
   const handleInsert = (markdown: string) => {
     if (onInsertMarkdown) {
@@ -82,7 +88,7 @@ export function DocumentToolbar({
 
   return (
     <>
-      <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-background sticky top-0 z-10">
+      <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-background sticky top-0 z-10 w-full overflow-x-auto">
         {/* Headings */}
         <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button
@@ -230,7 +236,7 @@ export function DocumentToolbar({
           </Button>
         </div>
 
-        {/* Collaboration - NEW! */}
+        {/* Collaboration */}
         {documentId && (
           <div className="flex items-center space-x-1 border-r border-border pr-2">
             <Button
@@ -264,6 +270,20 @@ export function DocumentToolbar({
             </Button>
           </div>
         )}
+
+        {/* Export Support */}
+        <div className="flex items-center space-x-1 border-r border-border pr-2 ml-auto">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowExportDialog(true)}
+            title="Export Document"
+            className="text-primary hover:bg-primary/10 gap-1"
+          >
+            <Download className="w-4 h-4" />
+            <span className="text-xs hidden sm:inline">Export</span>
+          </Button>
+        </div>
 
         {/* Utilities */}
         <div className="flex items-center space-x-1">
@@ -309,7 +329,15 @@ export function DocumentToolbar({
         onClose={() => setShowShortcutsDialog(false)}
       />
 
-      {/* Collaboration Dialogs - NEW! */}
+      <ExportDialog
+        open={showExportDialog}
+        onOpenChange={setShowExportDialog}
+        documentId={documentId || ''}
+        title={currentDocument?.title || documentTitle}
+        content={currentDocument?.content || ''}
+      />
+
+      {/* Collaboration Dialogs */}
       {documentId && (
         <>
           <ShareDocumentDialog

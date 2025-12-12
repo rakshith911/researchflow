@@ -495,7 +495,23 @@ class ApiClient {
       }
     }
   }
+  async exportDocument(id: string, format: 'pdf' | 'docx', html: string, title: string) {
+    const token = useAuthStore.getState().token;
+    const response = await fetch(`${this.baseUrl}/api/documents/${id}/export?format=${format}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify({ html, title })
+    });
+
+    if (!response.ok) {
+      throw new Error('Export failed');
+    }
+
+    return response.blob();
+  }
 }
 
 export const apiClient = new ApiClient()
-export type { SharedDocument, Comment }

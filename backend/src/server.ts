@@ -17,6 +17,9 @@ import uploadRoutes from './routes/upload.routes'
 import sharingRoutes from './routes/sharing.routes' // ✅ NEW - Collaboration sharing
 import commentsRoutes from './routes/comments.routes' // ✅ NEW - Document comments
 import adminRoutes from './routes/admin.routes' // ✅ NEW - Admin routes
+import { importTemplateFromPdf } from './controllers/templates.controller';
+import { exportDocument } from './controllers/export.controller';
+import { authMiddleware, optionalAuthMiddleware } from './middleware/auth.middleware';
 import templatesRoutes from './routes/templates.routes' // ✅ NEW - Template import
 import importRoutes from './routes/import.routes' // ✅ NEW - Import operations
 import chatRoutes from './routes/chat.routes' // ✅ NEW - Chat Assistant
@@ -46,6 +49,8 @@ app.get('/health', (req, res) => {
 })
 
 // API Routes
+app.post('/api/documents/:id/export', optionalAuthMiddleware, exportDocument); // ✅ Check specific route first!
+
 app.use('/api/auth', authRoutes)
 app.use('/api/documents', documentRoutes) // Includes comment routes now
 app.use('/api/insights', insightsRoutes)
@@ -78,6 +83,8 @@ app.use((req, res) => {
     error: 'Route not found'
   })
 })
+
+// Export
 
 // Start server
 async function startServer() {
