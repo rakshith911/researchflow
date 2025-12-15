@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDocumentStore } from '@/stores/document-store'
 import { useAuthStore } from '@/stores/auth-store'
-import { DocumentTemplateSelector } from '@/components/editor/document-template-selector'
+import { DocumentTemplateSelector } from '@/components/documents/document-template-selector'
 import { cn } from '@/lib/utils'
 import {
   FileText, Brain, Network, Settings, Plus, Clock, Users,

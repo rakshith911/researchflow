@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useDocumentStore } from '@/stores/document-store'
-import { DocumentTemplateSelector } from '@/components/editor/document-template-selector'
+import { DocumentTemplateSelector } from '@/components/documents/document-template-selector'
 import {
   Menu,
   Search,
@@ -36,7 +36,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
 
   const handleSelectTemplate = async (type: string, template?: string, format: 'markdown' | 'latex' = 'markdown') => {
     try {
-      await useDocumentStore.getState().createDocument(type, template, format)
+      await useDocumentStore.getState().createDocument(type as any, template, format)
       setShowTemplateSelector(false)
     } catch (error) {
       console.error('Error creating document:', error)

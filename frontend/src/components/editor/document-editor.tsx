@@ -8,7 +8,7 @@ import { MonacoEditorWithLinks } from './monaco-editor-with-links'
 import { MarkdownPreview } from './markdown-preview'
 import { LatexPreview } from './latex-preview' // Imported
 import { DocumentToolbar } from './document-toolbar'
-import { DocumentTemplateSelector } from './document-template-selector'
+import { DocumentTemplateSelector } from '@/components/documents/document-template-selector'
 import { SmartWritingAssistant } from './smart-writing-assistant'
 import { BacklinksPanel } from './backlinks-panel'
 import { ResizableEditorLayout } from './resizable-editor-layout'
@@ -119,9 +119,9 @@ export function DocumentEditor() {
     }
   }
 
-  const handleCreateDocument = async (type: any = 'general', template?: string) => {
+  const handleCreateDocument = async (type: any = 'general', template?: string, format: 'markdown' | 'latex' = 'markdown') => {
     try {
-      await createDocument(type, template)
+      await createDocument(type, template, format)
       setShowTemplateSelector(false)
     } catch (error) {
       console.error('Error creating document:', error)
@@ -407,7 +407,7 @@ export function DocumentEditor() {
 
         {showTemplateSelector && (
           <DocumentTemplateSelector
-            onSelect={handleCreateDocument}
+            onSelectTemplate={handleCreateDocument as any}
             onClose={() => setShowTemplateSelector(false)}
           />
         )}
