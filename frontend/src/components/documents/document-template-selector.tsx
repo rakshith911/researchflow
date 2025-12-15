@@ -1,16 +1,18 @@
 'use client'
 
+
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { 
-  FileText, 
-  Microscope, 
-  Code, 
-  Heart, 
-  Users, 
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs' // Import Tabs
+import {
+  FileText,
+  Microscope,
+  Code,
+  Heart,
+  Users,
   BookOpen,
   Zap,
   Brain,
@@ -18,7 +20,7 @@ import {
 } from 'lucide-react'
 
 interface DocumentTemplateSelectorProps {
-  onSelectTemplate: (type: string, template?: string) => void
+  onSelectTemplate: (type: string, template?: string, format?: 'markdown' | 'latex') => void // Updated signature
   onClose: () => void
 }
 
@@ -34,6 +36,7 @@ interface Template {
 
 export function DocumentTemplateSelector({ onSelectTemplate, onClose }: DocumentTemplateSelectorProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [selectedFormat, setSelectedFormat] = useState<'markdown' | 'latex'>('markdown') // New state
 
   const templates: Template[] = [
     {
@@ -110,8 +113,8 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
     { id: 'general', name: 'General', count: templates.filter(t => t.type === 'general').length }
   ]
 
-  const filteredTemplates = selectedCategory === 'all' 
-    ? templates 
+  const filteredTemplates = selectedCategory === 'all'
+    ? templates
     : templates.filter(t => t.type === selectedCategory)
 
   const getTypeColor = (type: string) => {
@@ -138,22 +141,34 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden bg-background border-border">
-        <DialogHeader>
+      <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden bg-background border-border flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Brain className="h-5 w-5 text-primary" />
               <span className="text-foreground">Smart Document Templates</span>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+
+            {/* Format Selection Toggle */}
+            <div className="flex items-center space-x-2 mr-8">
+              <span className="text-sm font-medium text-muted-foreground line-clamp-1">Editor Format:</span>
+              <Tabs value={selectedFormat} onValueChange={(val) => setSelectedFormat(val as 'markdown' | 'latex')} className="w-[200px]">
+                <TabsList className="grid w-full grid-cols-2 h-8">
+                  <TabsTrigger value="markdown" className="text-xs">Markdown</TabsTrigger>
+                  <TabsTrigger value="latex" className="text-xs">LaTeX</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <Button variant="ghost" size="sm" onClick={onClose} className="absolute right-4 top-4">
               <X className="h-4 w-4" />
             </Button>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex h-[60vh]">
+        <div className="flex flex-1 overflow-hidden">
           {/* Category Sidebar */}
-          <div className="w-48 border-r border-border pr-4 space-y-2">
+          <div className="w-48 border-r border-border pr-4 space-y-2 pt-4">
             <h3 className="text-sm font-medium text-muted-foreground mb-3">Categories</h3>
             {categories.map(category => (
               <Button
@@ -172,13 +187,29 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
           </div>
 
           {/* Template Grid */}
-          <div className="flex-1 pl-4 overflow-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="flex-1 pl-4 overflow-y-auto pt-4">
+            <div className={`mb-4 p-4 rounded-lg border ${selectedFormat === 'latex' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-blue-500/5 border-blue-500/20'}`}>
+              <div className="flex items-center space-x-2">
+                <div className={`p-1.5 rounded-full ${selectedFormat === 'latex' ? 'bg-orange-500/10 text-orange-600' : 'bg-blue-500/10 text-blue-600'}`}>
+                  {selectedFormat === 'latex' ? <Code className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+                </div>
+                <p className="text-sm text-foreground font-medium">
+                  {selectedFormat === 'latex' ? 'LaTeX Mode Selected' : 'Markdown WYSIWYG Mode Selected'}
+                </p>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1 ml-9">
+                {selectedFormat === 'latex'
+                  ? 'You will be editing raw LaTeX code. Ideal for precise academic formatting and equations.'
+                  : 'You will be editing in a rich-text environment. Ideal for quick drafting and general writing.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-4">
               {filteredTemplates.map(template => (
-                <Card 
+                <Card
                   key={template.id}
                   className={`cursor-pointer transition-all hover:shadow-lg border-2 ${getTypeColor(template.type)}`}
-                  onClick={() => onSelectTemplate(template.type)}
+                  onClick={() => onSelectTemplate(template.type, template.id, selectedFormat)}
                 >
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
@@ -195,12 +226,12 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="pt-0">
                     <p className="text-sm text-muted-foreground mb-3">
                       {template.description}
                     </p>
-                    
+
                     <div className="space-y-3">
                       <div>
                         <h4 className="text-xs font-medium text-muted-foreground mb-1">
@@ -214,7 +245,7 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
                           ))}
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-between text-xs text-muted-foreground">
                         <span>{template.estimatedTime}</span>
                         <Badge variant="outline" className="text-xs">
@@ -228,13 +259,13 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
             </div>
 
             {/* Quick Actions */}
-            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+            <div className="mb-6 p-4 bg-muted/50 rounded-lg">
               <h3 className="text-sm font-medium text-foreground mb-3">Quick Actions</h3>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectTemplate('general')}
+                  onClick={() => onSelectTemplate('general', 'blank', selectedFormat)}
                 >
                   <FileText className="h-4 w-4 mr-2" />
                   Blank Document
@@ -242,7 +273,7 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectTemplate('meeting')}
+                  onClick={() => onSelectTemplate('meeting', 'meeting', selectedFormat)}
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Quick Meeting
@@ -250,7 +281,7 @@ export function DocumentTemplateSelector({ onSelectTemplate, onClose }: Document
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onSelectTemplate('research')}
+                  onClick={() => onSelectTemplate('research', 'research', selectedFormat)}
                 >
                   <BookOpen className="h-4 w-4 mr-2" />
                   Research Note

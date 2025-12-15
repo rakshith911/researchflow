@@ -4,6 +4,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import { DocumentService } from '../services/document/document.service'
 import { SharingService } from '../services/document/sharing.service'
 import { WorkflowDetectorService } from '../services/ai/workflow-detector.service'
+import { latexService } from '../services/latex/latex.service'
 import { logger } from '../utils/logger'
 
 const documentService = new DocumentService()
@@ -50,7 +51,15 @@ export const createDocument = async (req: AuthRequest, res: Response) => {
       })
     }
 
-    const { title, content, type } = req.body
+    const { title, content, type, format } = req.body // Added format
+
+    // Validate format if provided
+    if (format && !['markdown', 'latex'].includes(format)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid format. Must be "markdown" or "latex"'
+      })
+    }
 
     // ✅ Validate input
     const validationError = validateDocumentInput(title, content)
@@ -62,11 +71,12 @@ export const createDocument = async (req: AuthRequest, res: Response) => {
     }
 
     const detectedType = type || workflowDetector.detectDocumentType(content || '')
-    
+
     const document = await documentService.createDocument(req.userId, {
       title: title || 'Untitled Document',
-      content: content || getDefaultTemplate(detectedType),
+      content: content || getDefaultTemplate(detectedType, format || 'markdown'),
       type: detectedType,
+      format: format || 'markdown', // Default to markdown
       tags: workflowDetector.extractTags(content || ''),
       linkedDocuments: [],
       collaborators: [],
@@ -96,13 +106,13 @@ export const getDocuments = async (req: AuthRequest, res: Response) => {
       })
     }
 
-    const { 
-      type, 
-      tags, 
-      limit = 50, 
-      offset = 0, 
-      sortBy = 'updated_at', 
-      sortOrder = 'desc' 
+    const {
+      type,
+      tags,
+      limit = 50,
+      offset = 0,
+      sortBy = 'updated_at',
+      sortOrder = 'desc'
     } = req.query
 
     // ✅ Validate pagination parameters
@@ -119,7 +129,7 @@ export const getDocuments = async (req: AuthRequest, res: Response) => {
     }
 
     const result = await documentService.getDocuments(req.userId, filters)
-    
+
     res.json({
       success: true,
       data: result.documents.map(formatDocumentDates),
@@ -150,20 +160,20 @@ export const getDocument = async (req: AuthRequest, res: Response) => {
 
     const { id } = req.params
     const { token } = req.query // Optional share token
-    
+
     // First check if user is owner
     let document = await documentService.getDocument(req.userId, id)
-    
+
     if (!document && token) {
       // User is not owner, check if they have access via share token
       const accessInfo = await sharingService.checkAccess(req.userId, token as string)
-      
+
       if (accessInfo.hasAccess && accessInfo.documentId === id) {
         // Get share to find owner
         const share = await sharingService.getShareByToken(token as string)
         if (share && share.document_id === id) {
           document = await documentService.getDocument(share.owner_id, id)
-          
+
           // Add share info to response
           if (document) {
             return res.json({
@@ -180,7 +190,7 @@ export const getDocument = async (req: AuthRequest, res: Response) => {
         }
       }
     }
-    
+
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -232,7 +242,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
     // Check if user has edit permission (owner or via share with edit permission)
     if (token) {
       const accessInfo = await sharingService.checkAccess(req.userId, token as string)
-      
+
       if (!accessInfo.hasAccess || accessInfo.permission !== 'edit' || accessInfo.documentId !== id) {
         return res.status(403).json({
           success: false,
@@ -259,7 +269,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
       if (updates.content) {
         const detectedType = workflowDetector.detectDocumentType(updates.content)
         const extractedTags = workflowDetector.extractTags(updates.content)
-        
+
         if (detectedType !== 'general') {
           updates.type = detectedType
         }
@@ -267,7 +277,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
       }
 
       const document = await documentService.updateDocument(share.owner_id, id, updates)
-      
+
       if (!document) {
         return res.status(404).json({
           success: false,
@@ -293,7 +303,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
     if (updates.content) {
       const detectedType = workflowDetector.detectDocumentType(updates.content)
       const extractedTags = workflowDetector.extractTags(updates.content)
-      
+
       if (detectedType !== 'general') {
         updates.type = detectedType
       }
@@ -301,7 +311,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
     }
 
     const document = await documentService.updateDocument(req.userId, id, updates)
-    
+
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -335,7 +345,7 @@ export const deleteDocument = async (req: AuthRequest, res: Response) => {
 
     const { id } = req.params
     const deleted = await documentService.deleteDocument(req.userId, id)
-    
+
     if (!deleted) {
       return res.status(404).json({
         success: false,
@@ -367,7 +377,7 @@ export const searchDocuments = async (req: AuthRequest, res: Response) => {
     }
 
     const { q, type, limit = 20, offset = 0 } = req.query
-    
+
     if (!q || typeof q !== 'string') {
       return res.status(400).json({
         success: false,
@@ -395,9 +405,9 @@ export const searchDocuments = async (req: AuthRequest, res: Response) => {
 
     const results = await documentService.searchDocuments(
       req.userId,
-      q as string, 
-      { 
-        type: type as string, 
+      q as string,
+      {
+        type: type as string,
         limit: parsedLimit,
         offset: parsedOffset
       }
@@ -451,7 +461,7 @@ export const renameDocument = async (req: AuthRequest, res: Response) => {
     }
 
     const document = await documentService.updateDocument(req.userId, id, { title: title.trim() })
-    
+
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -486,7 +496,7 @@ export const duplicateDocument = async (req: AuthRequest, res: Response) => {
 
     const { id } = req.params
     const originalDoc = await documentService.getDocument(req.userId, id)
-    
+
     if (!originalDoc) {
       return res.status(404).json({
         success: false,
@@ -523,7 +533,7 @@ export const toggleFavorite = async (req: AuthRequest, res: Response) => {
 
     const { id } = req.params
     const document = await documentService.toggleFavorite(req.userId, id)
-    
+
     if (!document) {
       return res.status(404).json({
         success: false,
@@ -696,9 +706,9 @@ export const bulkUpdateTags = async (req: AuthRequest, res: Response) => {
     }
 
     const updatedCount = await documentService.bulkUpdateTags(
-      req.userId, 
-      documentIds, 
-      tags, 
+      req.userId,
+      documentIds,
+      tags,
       operation as 'add' | 'remove' | 'replace'
     )
 
@@ -717,7 +727,90 @@ export const bulkUpdateTags = async (req: AuthRequest, res: Response) => {
   }
 }
 
-function getDefaultTemplate(type: string): string {
+function getDefaultTemplate(type: string, format: string = 'markdown'): string {
+  if (format === 'latex') {
+    const latexTemplates = {
+      research: `\\documentclass{article}
+\\usepackage{graphicx}
+\\usepackage{hyperref}
+
+\\title{Research Paper Title}
+\\author{Author Name}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\begin{abstract}
+Your abstract here...
+\\end{abstract}
+
+\\section{Introduction}
+Introduction to the research...
+
+\\section{Methodology}
+Description of methods...
+
+\\section{Results}
+Presentation of results...
+
+\\section{Conclusion}
+Summary and conclusions...
+
+\\end{document}`,
+
+      engineering: `\\documentclass{article}
+\\usepackage{listings}
+\\usepackage{xcolor}
+
+\\title{Technical Specification}
+\\author{Engineering Team}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Overview}
+Brief description of the project...
+
+\\section{Requirements}
+\\subsection{Functional}
+\\begin{itemize}
+    \\item Feature 1
+    \\item Feature 2
+\\end{itemize}
+
+\\section{Architecture}
+High-level system design...
+
+\\section{Implementation}
+\\begin{lstlisting}[language=Python]
+def hello_world():
+    print("Hello World")
+\\end{lstlisting}
+
+\\end{document}`,
+
+      general: `\\documentclass{article}
+
+\\title{Document Title}
+\\author{Author Name}
+\\date{\\today}
+
+\\begin{document}
+
+\\maketitle
+
+\\section{Section 1}
+Start writing your content here...
+
+\\end{document}`
+    }
+    return latexTemplates[type as keyof typeof latexTemplates] || latexTemplates.general
+  }
+
   const templates = {
     research: `# Research Document
 
@@ -810,6 +903,38 @@ Start writing your content here...
 
 ## Section 2`
   }
-  
+
   return templates[type as keyof typeof templates] || templates.general
+}
+
+export const compileDocument = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
+    }
+
+    const { id } = req.params
+    const document = await documentService.getDocument(id, req.userId)
+
+    if (!document) {
+      return res.status(404).json({ success: false, error: 'Document not found' })
+    }
+
+    if (document.format !== 'latex') {
+      return res.status(400).json({ success: false, error: 'Document is not in LaTeX format' })
+    }
+
+    const pdfBuffer = await latexService.compileToPdf(document.content)
+
+    res.setHeader('Content-Type', 'application/pdf')
+    res.setHeader('Content-Disposition', `inline; filename="${document.title}.pdf"`)
+    res.send(pdfBuffer)
+
+  } catch (error) {
+    logger.error('Error compiling document:', error)
+    res.status(500).json({
+      success: false,
+      error: 'Failed to compile document'
+    })
+  }
 }

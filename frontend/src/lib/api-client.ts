@@ -231,6 +231,22 @@ class ApiClient {
     })
   }
 
+  async compileDocument(id: string): Promise<Blob> {
+    const { token } = useAuthStore.getState()
+    const response = await fetch(`${this.baseUrl}/api/documents/${id}/compile`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Compilation failed')
+    }
+
+    return response.blob()
+  }
+
   // ==================== SHARING APIs (EMAIL-BASED) ====================
 
   /**

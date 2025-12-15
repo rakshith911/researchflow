@@ -13,7 +13,8 @@ import {
   getFavorites,
   getRecentDocuments,
   bulkDeleteDocuments,
-  bulkUpdateTags
+  bulkUpdateTags,
+  compileDocument
 } from '../controllers/documents.controller'
 import {
   addComment,
@@ -50,6 +51,7 @@ router.delete('/:id', deleteDocument)            // ✅ Delete document
 router.patch('/:id/rename', renameDocument)      // ✅ Rename document
 router.post('/:id/duplicate', duplicateDocument) // ✅ Duplicate document
 router.patch('/:id/favorite', toggleFavorite)    // ✅ Toggle favorite status
+router.post('/:id/compile', compileDocument)     // ✅ Search (Latex) Compile (PDF)
 
 // ✅ NEW: Comment routes for documents
 router.post('/:documentId/comments', addComment)        // ✅ Add comment to document

@@ -252,6 +252,10 @@ async function runMigrations() {
           throw error
         }
       }
+    },
+    {
+      name: '005_add_document_format',
+      up: async () => require('../db/migrations/005_add_document_format').up(db)
     }
   ]
 

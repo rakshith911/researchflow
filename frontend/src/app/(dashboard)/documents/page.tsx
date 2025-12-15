@@ -15,28 +15,28 @@ import { Plus, FileText, Brain, Star, Clock, TrendingUp, Loader2, Users, Eye, Me
 import { useRouter } from 'next/navigation'
 
 export default function DocumentsPage() {
-  const { 
+  const {
     documents,
     favoriteDocuments,
     recentDocuments,
-    setCurrentDocument, 
-    createDocument, 
+    setCurrentDocument,
+    createDocument,
     loadFavorites,
     loadRecentDocuments,
-    isLoading 
+    isLoading
   } = useDocumentStore()
-  
+
   const router = useRouter()
   const [isCreating, setIsCreating] = useState(false)
   const [showTemplateSelector, setShowTemplateSelector] = useState(false)
   const [searchResults, setSearchResults] = useState<any[] | null>(null)
   const [isSearching, setIsSearching] = useState(false)
   const [activeTab, setActiveTab] = useState('all')
-  
+
   // Shared documents state
   const [sharedWithMe, setSharedWithMe] = useState<any[]>([])
   const [isLoadingShared, setIsLoadingShared] = useState(false)
-  
+
   useEffect(() => {
     loadFavorites()
     loadRecentDocuments()
@@ -67,13 +67,15 @@ export default function DocumentsPage() {
     router.push(`/shared/${share.share_token}`)
   }
 
-  const handleCreateFromTemplate = async (type: any, template?: string) => {
+  const handleCreateFromTemplate = async (type: any, template?: string, format?: 'markdown' | 'latex') => {
     setIsCreating(true)
     try {
-      const newDoc = await createDocument(type, template)
-      setCurrentDocument(newDoc)
-      setShowTemplateSelector(false)
-      router.push('/editor')
+      const newDoc = await createDocument(type, template, format)
+      if (newDoc) {
+        setCurrentDocument(newDoc)
+        setShowTemplateSelector(false)
+        router.push('/editor')
+      }
     } catch (error) {
       console.error('Failed to create document:', error)
       setIsCreating(false)
@@ -84,8 +86,10 @@ export default function DocumentsPage() {
     setIsCreating(true)
     try {
       const newDoc = await createDocument('general', '')
-      setCurrentDocument(newDoc)
-      router.push('/editor')
+      if (newDoc) {
+        setCurrentDocument(newDoc)
+        router.push('/editor')
+      }
     } catch (error) {
       console.error('Failed to create document:', error)
       setIsCreating(false)
@@ -121,9 +125,9 @@ export default function DocumentsPage() {
   const totalDocuments = documents.length
   const favoriteCount = favoriteDocuments.length
   const recentCount = recentDocuments.length
-  const totalWords = documents.reduce((sum, doc) => sum + doc.wordCount, 0)
+  const totalWords = documents.reduce((sum, doc) => sum + (doc.wordCount || 0), 0)
   const sharedCount = sharedWithMe.length
-  
+
   return (
     <div className="h-full flex flex-col">
       {/* Header with Stats */}
@@ -138,42 +142,26 @@ export default function DocumentsPage() {
               </p>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               onClick={() => router.push('/ai-insights')}
             >
               <Brain className="h-4 w-4 mr-2" />
               AI Insights
             </Button>
-            <Button 
-              variant="outline"
+            <Button
               onClick={() => setShowTemplateSelector(true)}
               disabled={isCreating}
+              className="bg-primary hover:bg-primary/90"
             >
               {isCreating ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : (
                 <Plus className="h-4 w-4 mr-2" />
               )}
-              From Template
-            </Button>
-            <Button 
-              onClick={handleQuickNote} 
-              disabled={isCreating}
-            >
-              {isCreating ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-4 w-4 mr-2" />
-                  Quick Note
-                </>
-              )}
+              New Document
             </Button>
           </div>
         </div>
@@ -185,7 +173,7 @@ export default function DocumentsPage() {
             <span className="text-sm font-medium">{totalDocuments}</span>
             <span className="text-sm text-muted-foreground">Documents</span>
           </div>
-          
+
           {sharedCount > 0 && (
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-purple-500" />
@@ -193,7 +181,7 @@ export default function DocumentsPage() {
               <span className="text-sm text-muted-foreground">Shared</span>
             </div>
           )}
-          
+
           {favoriteCount > 0 && (
             <div className="flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
@@ -201,7 +189,7 @@ export default function DocumentsPage() {
               <span className="text-sm text-muted-foreground">Favorites</span>
             </div>
           )}
-          
+
           {recentCount > 0 && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-muted-foreground" />
@@ -209,7 +197,7 @@ export default function DocumentsPage() {
               <span className="text-sm text-muted-foreground">Recent</span>
             </div>
           )}
-          
+
           {totalWords > 0 && (
             <div className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
@@ -221,7 +209,7 @@ export default function DocumentsPage() {
 
         {/* Advanced Search */}
         <div className="px-6 pb-4">
-          <AdvancedSearch 
+          <AdvancedSearch
             onSearch={handleSearch}
             onClear={handleClearSearch}
           />
@@ -252,7 +240,7 @@ export default function DocumentsPage() {
           </div>
         )}
       </div>
-      
+
       {/* Tabs for My Documents vs Shared With Me */}
       <div className="flex-1 overflow-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
@@ -279,7 +267,7 @@ export default function DocumentsPage() {
           </div>
 
           <TabsContent value="all" className="flex-1 overflow-hidden m-0">
-            <DocumentList 
+            <DocumentList
               onSelectDocument={handleSelectDocument}
               searchResults={searchResults}
               className="h-full"
@@ -304,7 +292,7 @@ export default function DocumentsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {sharedWithMe.map((share) => (
-                  <Card 
+                  <Card
                     key={share.id}
                     className="cursor-pointer hover:shadow-lg transition-shadow"
                     onClick={() => handleSelectSharedDocument(share)}
@@ -314,7 +302,7 @@ export default function DocumentsPage() {
                         <CardTitle className="text-base line-clamp-2">
                           {share.document_title || 'Untitled Document'}
                         </CardTitle>
-                        <Badge 
+                        <Badge
                           variant="secondary"
                           className={`${getPermissionColor(share.permission)} flex-shrink-0`}
                         >

@@ -6,6 +6,7 @@ import { useSettingsStore } from '@/stores/settings-store'
 import { useSmartWriting } from '@/hooks/use-smart-writing'
 import { MonacoEditorWithLinks } from './monaco-editor-with-links'
 import { MarkdownPreview } from './markdown-preview'
+import { LatexPreview } from './latex-preview' // Imported
 import { DocumentToolbar } from './document-toolbar'
 import { DocumentTemplateSelector } from './document-template-selector'
 import { SmartWritingAssistant } from './smart-writing-assistant'
@@ -528,6 +529,7 @@ export function DocumentEditor() {
               onChange={updateDocumentContent}
               onLinksChange={handleLinksChange}
               onMount={(editor) => { editorRef.current = editor }}
+              language={currentDocument.format === 'latex' ? 'latex' : 'markdown'}
               theme={editorTheme}
               className="flex-1"
             />
@@ -536,16 +538,25 @@ export function DocumentEditor() {
         preview={
           <div className="border-l flex flex-col h-full">
             <div className="flex items-center justify-between px-4 py-2 border-b bg-muted">
-              <span className="text-sm font-medium">Preview</span>
+              <span className="text-sm font-medium">
+                {currentDocument.format === 'latex' ? 'PDF Preview' : 'Preview'}
+              </span>
               <Button variant="ghost" size="sm" onClick={() => setShowPreview(false)}>
                 <PanelRightClose className="h-3 w-3" />
               </Button>
             </div>
-            <MarkdownPreview
-              content={currentDocument.content}
-              onNavigateToDocument={handleNavigateToDocumentByTitle}
-              className="flex-1 overflow-auto"
-            />
+            {currentDocument.format === 'latex' ? (
+              <LatexPreview
+                content={currentDocument.content}
+                documentId={currentDocument.id}
+              />
+            ) : (
+              <MarkdownPreview
+                content={currentDocument.content}
+                onNavigateToDocument={handleNavigateToDocumentByTitle}
+                className="flex-1 overflow-auto"
+              />
+            )}
           </div>
         }
         assistant={

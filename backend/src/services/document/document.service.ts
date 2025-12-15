@@ -9,6 +9,7 @@ interface Document {
   title: string
   content: string
   type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general'
+  format: 'markdown' | 'latex'
   tags: string
   linked_documents: string
   collaborators: string
@@ -34,6 +35,7 @@ interface CreateDocumentInput {
   title: string
   content: string
   type: Document['type']
+  format?: 'markdown' | 'latex'
   tags: string[]
   linkedDocuments: string[]
   collaborators: string[]
@@ -53,19 +55,20 @@ export class DocumentService {
     const id = uuidv4()
     const now = new Date().toISOString()
     const wordCount = this.calculateWordCount(input.content)
-    
+
     await db.run(
       `INSERT INTO documents (
-        id, user_id, title, content, type, tags, linked_documents, 
+        id, user_id, title, content, type, format, tags, linked_documents, 
         collaborators, created_at, updated_at, last_accessed_at, version, 
         word_count, reading_time, is_favorite
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
         input.title,
         input.content,
         input.type,
+        input.format || 'markdown', // Default
         JSON.stringify(input.tags),
         JSON.stringify(input.linkedDocuments),
         JSON.stringify(input.collaborators),
@@ -90,25 +93,25 @@ export class DocumentService {
 
   async getDocument(userId: string, id: string, updateLastAccessed: boolean = false): Promise<Document | null> {
     const db = await getDatabase()
-    
+
     if (updateLastAccessed) {
       await db.run(
         'UPDATE documents SET last_accessed_at = ? WHERE id = ? AND user_id = ?',
         [new Date().toISOString(), id, userId]
       )
     }
-    
+
     const document = await db.get<Document>(
       'SELECT * FROM documents WHERE id = ? AND user_id = ?',
       [id, userId]
     )
-    
+
     return document ? this.parseDocument(document) : null
   }
 
   async getDocuments(userId: string, filters: DocumentFilters): Promise<{ documents: Document[], total: number }> {
     const db = await getDatabase()
-    
+
     let query = 'SELECT * FROM documents WHERE user_id = ?'
     const params: any[] = [userId]
 
@@ -141,7 +144,7 @@ export class DocumentService {
 
   async updateDocument(userId: string, id: string, updates: Partial<Document>): Promise<Document | null> {
     const db = await getDatabase()
-    
+
     const document = await this.getDocument(userId, id)
     if (!document) {
       return null
@@ -205,18 +208,18 @@ export class DocumentService {
       'DELETE FROM documents WHERE id = ? AND user_id = ?',
       [id, userId]
     )
-    
+
     logger.info(`Document deleted: ${id}`)
     return (result.changes || 0) > 0
   }
 
   async searchDocuments(
-    userId: string, 
-    query: string, 
+    userId: string,
+    query: string,
     options: { type?: string, limit: number, offset: number }
   ): Promise<{ documents: Document[], total: number }> {
     const db = await getDatabase()
-    
+
     let sql = `
       SELECT * FROM documents 
       WHERE user_id = ? 
@@ -236,7 +239,7 @@ export class DocumentService {
     params.push(options.limit, options.offset)
 
     const documents = await db.all<Document[]>(sql, params)
-    
+
     return {
       documents: documents.map(doc => this.parseDocument(doc)),
       total: countResult?.count || 0
@@ -246,7 +249,7 @@ export class DocumentService {
   async duplicateDocument(userId: string, id: string): Promise<Document> {
     const db = await getDatabase()
     const originalDoc = await this.getDocument(userId, id)
-    
+
     if (!originalDoc) {
       throw new Error('Document not found')
     }
@@ -292,7 +295,7 @@ export class DocumentService {
   async toggleFavorite(userId: string, id: string): Promise<Document | null> {
     const db = await getDatabase()
     const document = await this.getDocument(userId, id)
-    
+
     if (!document) {
       return null
     }
@@ -309,7 +312,7 @@ export class DocumentService {
   }
 
   async getFavorites(
-    userId: string, 
+    userId: string,
     options: { limit: number, offset: number }
   ): Promise<{ documents: Document[], total: number }> {
     const db = await getDatabase()
@@ -349,7 +352,7 @@ export class DocumentService {
 
   async bulkDeleteDocuments(userId: string, documentIds: string[]): Promise<number> {
     const db = await getDatabase()
-    
+
     if (documentIds.length === 0) {
       return 0
     }
@@ -366,52 +369,52 @@ export class DocumentService {
   }
 
   async bulkUpdateTags(
-  userId: string, 
-  documentIds: string[], 
-  tags: string[], 
-  operation: 'add' | 'remove' | 'replace'
-): Promise<number> {
-  const db = await getDatabase()
-  
-  if (documentIds.length === 0) {
-    return 0
-  }
+    userId: string,
+    documentIds: string[],
+    tags: string[],
+    operation: 'add' | 'remove' | 'replace'
+  ): Promise<number> {
+    const db = await getDatabase()
 
-  let updatedCount = 0
-
-  for (const docId of documentIds) {
-    const document = await this.getDocument(userId, docId)
-    if (!document) continue
-
-    // document.tags is already parsed by getDocument() -> parseDocument()
-    const currentTags = Array.isArray(document.tags) ? document.tags : []
-    let newTags: string[]
-
-    switch (operation) {
-      case 'add':
-        newTags = [...new Set([...currentTags, ...tags])]
-        break
-      case 'remove':
-        newTags = currentTags.filter(tag => !tags.includes(tag))
-        break
-      case 'replace':
-        newTags = tags
-        break
-      default:
-        newTags = currentTags
+    if (documentIds.length === 0) {
+      return 0
     }
 
-    await db.run(
-      'UPDATE documents SET tags = ?, updated_at = ? WHERE id = ? AND user_id = ?',
-      [JSON.stringify(newTags), new Date().toISOString(), docId, userId]
-    )
+    let updatedCount = 0
 
-    updatedCount++
+    for (const docId of documentIds) {
+      const document = await this.getDocument(userId, docId)
+      if (!document) continue
+
+      // document.tags is already parsed by getDocument() -> parseDocument()
+      const currentTags = Array.isArray(document.tags) ? document.tags : []
+      let newTags: string[]
+
+      switch (operation) {
+        case 'add':
+          newTags = [...new Set([...currentTags, ...tags])]
+          break
+        case 'remove':
+          newTags = currentTags.filter(tag => !tags.includes(tag))
+          break
+        case 'replace':
+          newTags = tags
+          break
+        default:
+          newTags = currentTags
+      }
+
+      await db.run(
+        'UPDATE documents SET tags = ?, updated_at = ? WHERE id = ? AND user_id = ?',
+        [JSON.stringify(newTags), new Date().toISOString(), docId, userId]
+      )
+
+      updatedCount++
+    }
+
+    logger.info(`Bulk updated tags for ${updatedCount} documents for user: ${userId}`)
+    return updatedCount
   }
-
-  logger.info(`Bulk updated tags for ${updatedCount} documents for user: ${userId}`)
-  return updatedCount
-}
 
   private parseDocument(doc: Document): Document {
     return {

@@ -65,9 +65,9 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
 
   const handleCreateDocument = () => setShowTemplateSelector(true)
 
-  const handleSelectTemplate = async (type: any, template?: string) => {
+  const handleSelectTemplate = async (type: string, template?: string, format: 'markdown' | 'latex' = 'markdown') => {
     try {
-      await createDocument(type, template)
+      await createDocument(type as any, template, format)
       setShowTemplateSelector(false)
       router.push('/editor')
     } catch (error) {
@@ -247,7 +247,7 @@ export function DashboardSidebar({ isOpen, onToggle }: DashboardSidebarProps) {
       {/* Template Modal */}
       {showTemplateSelector && (
         <DocumentTemplateSelector
-          onSelect={handleSelectTemplate}
+          onSelectTemplate={handleSelectTemplate}
           onClose={() => setShowTemplateSelector(false)}
         />
       )}

@@ -9,6 +9,7 @@ export interface Document {
   title: string
   content: string
   type: 'research' | 'engineering' | 'healthcare' | 'meeting' | 'general' | 'resume'
+  format?: 'markdown' | 'latex'
   tags: string[]
   createdAt: string
   updatedAt: string
@@ -39,7 +40,7 @@ interface DocumentStore {
   loadDocument: (id: string) => Promise<void>
   loadFavorites: () => Promise<void>
   loadRecentDocuments: () => Promise<void>
-  createDocument: (type: Document['type'], template?: string) => Promise<void>
+  createDocument: (type: Document['type'], template?: string, format?: 'markdown' | 'latex') => Promise<Document | null>
   updateDocument: (id: string, updates: Partial<Document>) => Promise<void>
   updateDocumentContent: (content: string) => void
   updateDocumentTitle: (title: string) => void
@@ -361,7 +362,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
   },
 
   // Create a new document
-  createDocument: async (type: Document['type'], template?: string) => {
+  createDocument: async (type: Document['type'], template?: string, format?: 'markdown' | 'latex') => {
     const { isGuestMode, token } = await import('./auth-store').then(m => m.useAuthStore.getState())
     const isGuest = isGuestMode || !token
 
@@ -370,6 +371,7 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       title: 'Untitled Document',
       content: template || '',
       type,
+      format: format || 'markdown', // Default
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -388,12 +390,12 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
         currentDocument: newDoc,
         recentDocuments: guestDocs.slice(0, 5)
       })
-      return
+      return newDoc
     }
 
     set({ isLoading: true, error: null })
     try {
-      const result = await apiClient.post<Document>('/api/documents', { type, content: template })
+      const result = await apiClient.post<Document>('/api/documents', { type, content: template, format })
 
       if (result.success && result.data) {
         set({
@@ -401,13 +403,16 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
           currentDocument: result.data,
           isLoading: false
         })
+        return result.data
       }
+      return null
     } catch (error) {
       console.error('Failed to create document:', error)
       set({
         error: error instanceof Error ? error.message : 'Failed to create document',
         isLoading: false
       })
+      return null
     }
   },
 

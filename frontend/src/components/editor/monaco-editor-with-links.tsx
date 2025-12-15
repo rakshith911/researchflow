@@ -12,6 +12,7 @@ interface MonacoEditorWithLinksProps {
   onMount?: (editor: editor.IStandaloneCodeEditor) => void  // ✅ ADDED
   theme?: 'light' | 'dark'
   className?: string
+  language?: string
 }
 
 export function MonacoEditorWithLinks({
@@ -20,7 +21,8 @@ export function MonacoEditorWithLinks({
   onLinksChange,
   onMount,  // ✅ ADDED
   theme = 'light',
-  className
+  className,
+  language = 'markdown'
 }: MonacoEditorWithLinksProps) {
   const editorRef = useRef<editor.IStandaloneCodeEditor>()
   const [showAutocomplete, setShowAutocomplete] = useState(false)
@@ -55,6 +57,9 @@ export function MonacoEditorWithLinks({
     }
 
     editor.onDidChangeModelContent(() => {
+      // Only do wiki link autocomplete if in markdown mode
+      if (language !== 'markdown') return
+
       const model = editor.getModel()
       if (!model) return
 
@@ -78,7 +83,7 @@ export function MonacoEditorWithLinks({
       } else if (showAutocomplete && linkStartPosition) {
         const linkStart = linkStartPosition.column + 1
         const currentText = lineContent.substring(linkStart, position.column - 1)
-        
+
         if (currentText.includes(']]') || currentText.includes('\n')) {
           setShowAutocomplete(false)
         } else {
@@ -136,7 +141,7 @@ export function MonacoEditorWithLinks({
     <div className={className} style={{ position: 'relative' }}>
       <Editor
         height="100%"
-        language="markdown"
+        language={language}
         value={value}
         onChange={handleEditorChange}
         onMount={handleEditorDidMount}

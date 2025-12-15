@@ -34,9 +34,9 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
     setShowTemplateSelector(true)
   }
 
-  const handleSelectTemplate = async (type: any, template?: string) => {
+  const handleSelectTemplate = async (type: string, template?: string, format: 'markdown' | 'latex' = 'markdown') => {
     try {
-      await useDocumentStore.getState().createDocument(type, template)
+      await useDocumentStore.getState().createDocument(type, template, format)
       setShowTemplateSelector(false)
     } catch (error) {
       console.error('Error creating document:', error)
@@ -119,7 +119,7 @@ export function DashboardHeader({ onToggleSidebar }: DashboardHeaderProps) {
       {/* Template Selector Modal */}
       {showTemplateSelector && (
         <DocumentTemplateSelector
-          onSelect={handleSelectTemplate}
+          onSelectTemplate={handleSelectTemplate}
           onClose={() => setShowTemplateSelector(false)}
         />
       )}
