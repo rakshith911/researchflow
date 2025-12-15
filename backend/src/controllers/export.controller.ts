@@ -16,9 +16,9 @@ export const exportDocument = async (req: Request, res: Response) => {
         // Convert Markdown to HTML for PDF generation
         // We wrap it in a div to ensure styles apply
         const htmlContent = `
-    < div class="markdown-body" >
-        ${marked(markdownContent)}
-</div>
+    <div class="markdown-body">
+        ${marked.parse(markdownContent)}
+    </div>
     `;
 
         let buffer: Buffer;
@@ -43,7 +43,7 @@ export const exportDocument = async (req: Request, res: Response) => {
         }
 
         res.setHeader('Content-Type', contentType);
-        res.setHeader('Content-Disposition', `attachment; filename = "${title || 'document'}.${extension}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${title || 'document'}.${extension}"`);
         res.send(buffer);
 
     } catch (error) {
