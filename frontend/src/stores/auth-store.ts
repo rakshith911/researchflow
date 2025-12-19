@@ -88,7 +88,7 @@ export const useAuthStore = create<AuthState>()(
           const guestDocs = getGuestDocuments()
 
           if (guestDocs.length > 0) {
-            console.log(`Migrating ${guestDocs.length} guest documents...`)
+
             try {
               // Upload each document
               for (const doc of guestDocs) {
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthState>()(
                   })
                 })
               }
-              console.log('Migration successful')
+
               clearGuestDocuments()
 
               // Reload documents to show new ones
@@ -162,7 +162,7 @@ export const useAuthStore = create<AuthState>()(
           const guestDocs = getGuestDocuments()
 
           if (guestDocs.length > 0) {
-            console.log(`Migrating ${guestDocs.length} guest documents...`)
+
             try {
               // Upload each document
               for (const doc of guestDocs) {
@@ -180,7 +180,7 @@ export const useAuthStore = create<AuthState>()(
                   })
                 })
               }
-              console.log('Migration successful')
+
               clearGuestDocuments()
 
               // Reload documents to show new ones

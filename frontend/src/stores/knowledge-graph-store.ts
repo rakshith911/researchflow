@@ -179,17 +179,14 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphStore>((set, get) => 
 
     // If already loading or refreshed within last second, skip
     if (state.isLoading || (now - state.lastRefreshTime < 1000)) {
-      console.log('Skipping refresh - too soon or already loading')
       return
     }
 
-    console.log('Refreshing knowledge graph...')
     await get().loadGraph()
   },
 
   openDocument: (documentId: string) => {
     // Navigate to document editor
-    console.log(`Opening document: ${documentId}`)
     // For Next.js App Router:
     window.location.href = `/editor?docId=${documentId}`
     // Or if using Next.js router:

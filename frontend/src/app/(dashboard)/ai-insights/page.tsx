@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { 
-  Brain, 
-  TrendingUp, 
-  FileText, 
-  Zap, 
-  BarChart3, 
+import {
+  Brain,
+  TrendingUp,
+  FileText,
+  Zap,
+  BarChart3,
   Target,
   ArrowRight,
   Lightbulb,
@@ -47,9 +47,8 @@ export default function AIInsightsPage() {
     const loadAIInsights = async () => {
       try {
         const response = await apiClient.get<AIInsightsData>('/api/insights/ai')
-        
-        console.log('Full API Response:', response)
-        
+
+
         if (response?.success && response?.data) {
           setInsightsData(response.data)
         } else {
@@ -88,7 +87,7 @@ export default function AIInsightsPage() {
                 <Sparkles className="h-5 w-5 text-yellow-500" />
                 What you'll get with AI Insights:
               </h3>
-              
+
               <div className="grid gap-3">
                 <div className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
                   <div className="p-2 bg-blue-500 rounded-lg flex-shrink-0">
@@ -145,7 +144,7 @@ export default function AIInsightsPage() {
               <p className="text-center text-sm text-muted-foreground mb-4">
                 Create a free account to unlock AI Insights and save your work across devices
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   size="lg"
@@ -164,7 +163,7 @@ export default function AIInsightsPage() {
                   Already have an account? Log In
                 </Button>
               </div>
-              
+
               <Button
                 variant="ghost"
                 className="w-full"
@@ -227,7 +226,7 @@ export default function AIInsightsPage() {
               </p>
             </div>
           </div>
-          
+
           <Button onClick={() => router.push('/documents')}>
             View Documents
             <ArrowRight className="h-4 w-4 ml-2" />
@@ -313,20 +312,18 @@ export default function AIInsightsPage() {
               <div className="space-y-4">
                 {smartRecommendations.slice(0, 5).map((rec, index) => (
                   <div key={index} className="flex items-start space-x-4 p-4 bg-muted/30 rounded-lg">
-                    <div className={`p-2 rounded-lg ${
-                      rec.priority === 'high' ? 'bg-red-100 dark:bg-red-950' :
-                      rec.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-950' : 'bg-blue-100 dark:bg-blue-950'
-                    }`}>
-                      <Lightbulb className={`h-4 w-4 ${
-                        rec.priority === 'high' ? 'text-red-600 dark:text-red-400' :
-                        rec.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
-                      }`} />
+                    <div className={`p-2 rounded-lg ${rec.priority === 'high' ? 'bg-red-100 dark:bg-red-950' :
+                        rec.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-950' : 'bg-blue-100 dark:bg-blue-950'
+                      }`}>
+                      <Lightbulb className={`h-4 w-4 ${rec.priority === 'high' ? 'text-red-600 dark:text-red-400' :
+                          rec.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                        }`} />
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center justify-between mb-2">
                         <h4 className="font-medium">{rec.title}</h4>
                         <div className="flex items-center space-x-2">
-                          <Badge 
+                          <Badge
                             variant={rec.priority === 'high' ? 'destructive' : 'secondary'}
                             className="text-xs"
                           >
@@ -393,20 +390,18 @@ export default function AIInsightsPage() {
               <div className="space-y-3">
                 {contentGaps.slice(0, 6).map((gap, index) => (
                   <div key={index} className="flex items-start space-x-3 p-3 bg-muted/20 rounded-lg">
-                    <div className={`p-1 rounded ${
-                      gap.priority === 'high' ? 'bg-red-100 dark:bg-red-950' :
-                      gap.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-950' : 'bg-blue-100 dark:bg-blue-950'
-                    }`}>
-                      <AlertTriangle className={`h-3 w-3 ${
-                        gap.priority === 'high' ? 'text-red-600 dark:text-red-400' :
-                        gap.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
-                      }`} />
+                    <div className={`p-1 rounded ${gap.priority === 'high' ? 'bg-red-100 dark:bg-red-950' :
+                        gap.priority === 'medium' ? 'bg-yellow-100 dark:bg-yellow-950' : 'bg-blue-100 dark:bg-blue-950'
+                      }`}>
+                      <AlertTriangle className={`h-3 w-3 ${gap.priority === 'high' ? 'text-red-600 dark:text-red-400' :
+                          gap.priority === 'medium' ? 'text-yellow-600 dark:text-yellow-400' : 'text-blue-600 dark:text-blue-400'
+                        }`} />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-medium">{gap.description}</p>
                       <p className="text-xs text-muted-foreground mt-1">{gap.suggestion}</p>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={gap.priority === 'high' ? 'destructive' : 'secondary'}
                       className="text-xs"
                     >
@@ -434,7 +429,7 @@ export default function AIInsightsPage() {
                   <span className="text-sm capitalize font-medium">{type}</span>
                   <div className="flex items-center space-x-3">
                     <div className="w-32 h-2 bg-muted rounded-full">
-                      <div 
+                      <div
                         className="h-full bg-primary rounded-full"
                         style={{ width: `${(count as number / analytics.overview.totalDocuments) * 100}%` }}
                       />

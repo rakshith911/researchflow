@@ -9,7 +9,7 @@ import React from 'react'
 
 interface MarkdownPreviewProps {
   content: string
-  onNavigateToDocument?: (title: string) => void 
+  onNavigateToDocument?: (title: string) => void
   className?: string
 }
 
@@ -17,7 +17,7 @@ export function MarkdownPreview({ content, onNavigateToDocument, className }: Ma
   // Convert [[wiki links]] to markdown links - FIXED VERSION
   const processedContent = React.useMemo(() => {
     if (!content) return content
-    
+
     return content.replace(
       /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g,
       (match, title, displayText) => {
@@ -39,25 +39,24 @@ export function MarkdownPreview({ content, onNavigateToDocument, className }: Ma
         components={{
           // Wiki link handler
           a: ({ node, href, children, ...props }) => {
-  if (href?.startsWith('#wiki:')) {
-    const title = decodeURIComponent(href.replace('#wiki:', ''))
-    return (
-      <span
-        onClick={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          console.log('Clicking wiki link:', title) // Debug
-          onNavigateToDocument?.(title)
-        }}
-        className="text-blue-600 dark:text-blue-400 hover:opacity-80 hover:underline font-medium cursor-pointer"
-        title={`Navigate to: ${title}`}
-      >
-        {children}
-      </span>
-    )
-  }
-  return <a href={href} {...props}>{children}</a>
-},
+            if (href?.startsWith('#wiki:')) {
+              const title = decodeURIComponent(href.replace('#wiki:', ''))
+              return (
+                <span
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    onNavigateToDocument?.(title)
+                  }}
+                  className="text-blue-600 dark:text-blue-400 hover:opacity-80 hover:underline font-medium cursor-pointer"
+                  title={`Navigate to: ${title}`}
+                >
+                  {children}
+                </span>
+              )
+            }
+            return <a href={href} {...props}>{children}</a>
+          },
         }}
       >
         {processedContent || '*Start typing to see your content here...*'}

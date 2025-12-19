@@ -55,7 +55,6 @@ export function ProtectedRoute({ children, requireAuth = false }: ProtectedRoute
     // 4. Done checking
     // 4. Done checking
     if (!isChecking && requireAuth && !isAuthenticated && !isGuestMode) {
-      console.log('ProtectedRoute: Redirecting to login', { isChecking, requireAuth, isAuthenticated, isGuestMode })
       router.push('/login');
     }
   }, [isChecking, isAuthenticated, isGuestMode, requireAuth, router]);

@@ -2,6 +2,7 @@
 import rateLimit from 'express-rate-limit'
 import helmet from 'helmet'
 import { Request, Response, NextFunction } from 'express'
+import { logger } from '../utils/logger'
 
 // Rate limiting configuration
 export const apiLimiter = rateLimit({
@@ -116,10 +117,10 @@ export const validateNoSQLInjection = (req: Request, res: Response, next: NextFu
 // CORS configuration
 export const corsOptions = {
   origin: (origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void) => {
-    const allowedOrigins = process.env.FRONTEND_URL 
+    const allowedOrigins = process.env.FRONTEND_URL
       ? process.env.FRONTEND_URL.split(',')
       : ['http://localhost:3000']
-    
+
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true)
@@ -138,9 +139,9 @@ export const securityLogger = (req: Request, res: Response, next: NextFunction) 
   const timestamp = new Date().toISOString()
   const ip = req.ip || req.socket.remoteAddress
   const userAgent = req.get('user-agent') || 'unknown'
-  
-  console.log(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip} - UA: ${userAgent}`)
-  
+
+  logger.info(`[${timestamp}] ${req.method} ${req.path} - IP: ${ip} - UA: ${userAgent}`)
+
   next()
 }
 
