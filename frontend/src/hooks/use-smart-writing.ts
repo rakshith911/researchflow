@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { debounce } from 'lodash'
+import debounce from 'lodash/debounce'
 import { apiClient } from '@/lib/api-client'
 import { useAuthStore } from '@/stores/auth-store'
 
