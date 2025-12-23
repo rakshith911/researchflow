@@ -22,40 +22,46 @@ import {
   getCommentCount
 } from '../controllers/comments.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
+import { validateRequest } from '../middleware/validation.middleware'
+import {
+  CreateDocumentSchema,
+  UpdateDocumentSchema,
+  SearchDocumentSchema,
+  BulkOperationSchema,
+  DocumentIdSchema,
+  RenameDocumentSchema
+} from '../schemas/document.schemas'
 
 const router = Router()
-
-// ⚠️ IMPORTANT: Specific routes MUST come before parameterized routes
-// Otherwise /:id will capture /search, /favorites, etc.
 
 // All document routes require authentication
 router.use(authMiddleware)
 
 // Specific routes (MUST be first)
-router.get('/search', searchDocuments)           // ✅ Search documents
-router.get('/favorites', getFavorites)           // ✅ Get favorited documents
-router.get('/recent', getRecentDocuments)        // ✅ Get recently accessed docs
+router.get('/search', validateRequest(SearchDocumentSchema), searchDocuments)
+router.get('/favorites', getFavorites) // Limit/offset validation is generic, can add schema if needed
+router.get('/recent', getRecentDocuments)
 
 // Batch operations
-router.post('/bulk-delete', bulkDeleteDocuments) // ✅ Delete multiple documents
-router.post('/bulk-tags', bulkUpdateTags)        // ✅ Update tags for multiple docs
+router.post('/bulk-delete', validateRequest(BulkOperationSchema), bulkDeleteDocuments)
+router.post('/bulk-tags', validateRequest(BulkOperationSchema), bulkUpdateTags)
 
 // Collection routes
-router.post('/', createDocument)                 // ✅ Create new document
-router.get('/', getDocuments)                    // ✅ List all documents
+router.post('/', validateRequest(CreateDocumentSchema), createDocument)
+router.get('/', validateRequest(SearchDocumentSchema), getDocuments) // Reusing SearchSchema for basic list params
 
 // Single document routes (MUST be last)
-router.get('/:id', getDocument)                  // ✅ Get single document
-router.put('/:id', updateDocument)               // ✅ Update document
-router.delete('/:id', deleteDocument)            // ✅ Delete document
-router.patch('/:id/rename', renameDocument)      // ✅ Rename document
-router.post('/:id/duplicate', duplicateDocument) // ✅ Duplicate document
-router.patch('/:id/favorite', toggleFavorite)    // ✅ Toggle favorite status
-router.post('/:id/compile', compileDocument)     // ✅ Search (Latex) Compile (PDF)
+router.get('/:id', validateRequest(DocumentIdSchema), getDocument)
+router.put('/:id', validateRequest(UpdateDocumentSchema), updateDocument)
+router.delete('/:id', validateRequest(DocumentIdSchema), deleteDocument)
+router.patch('/:id/rename', validateRequest(RenameDocumentSchema), renameDocument)
+router.post('/:id/duplicate', validateRequest(DocumentIdSchema), duplicateDocument)
+router.patch('/:id/favorite', validateRequest(DocumentIdSchema), toggleFavorite)
+router.post('/:id/compile', validateRequest(DocumentIdSchema), compileDocument)
 
-// ✅ NEW: Comment routes for documents
-router.post('/:documentId/comments', addComment)        // ✅ Add comment to document
-router.get('/:documentId/comments', getComments)        // ✅ Get all comments for document
-router.get('/:documentId/comments/count', getCommentCount) // ✅ Get unresolved comment count
+// Comment routes for documents
+router.post('/:documentId/comments', addComment)
+router.get('/:documentId/comments', getComments)
+router.get('/:documentId/comments/count', getCommentCount)
 
 export default router

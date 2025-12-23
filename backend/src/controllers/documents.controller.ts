@@ -6,69 +6,21 @@ import { SharingService } from '../services/document/sharing.service'
 import { WorkflowDetectorService } from '../services/ai/workflow-detector.service'
 import { latexService } from '../services/latex/latex.service'
 import { logger } from '../utils/logger'
+import { formatDocumentDates } from '../utils/formatters'
+import { getDefaultTemplate } from '../utils/templates'
 
 const documentService = new DocumentService()
 const sharingService = new SharingService()
 const workflowDetector = new WorkflowDetectorService()
 
-// ✅ Helper function to format dates consistently
-function formatDocumentDates(doc: any) {
-  return {
-    ...doc,
-    created_at: doc.created_at ? new Date(doc.created_at).toISOString() : null,
-    updated_at: doc.updated_at ? new Date(doc.updated_at).toISOString() : null,
-    last_accessed_at: doc.last_accessed_at ? new Date(doc.last_accessed_at).toISOString() : null,
-    // Transform snake_case to camelCase for frontend
-    createdAt: doc.created_at ? new Date(doc.created_at).toISOString() : null,
-    updatedAt: doc.updated_at ? new Date(doc.updated_at).toISOString() : null,
-    lastAccessedAt: doc.last_accessed_at ? new Date(doc.last_accessed_at).toISOString() : null,
-    wordCount: doc.word_count,
-    readingTime: doc.reading_time,
-    linkedDocuments: doc.linked_documents,
-    isFavorite: doc.is_favorite || false,
-  }
-}
-
-// ✅ Input validation helper
-function validateDocumentInput(title?: string, content?: string): string | null {
-  if (title !== undefined) {
-    if (typeof title !== 'string') return 'Title must be a string'
-    if (title.length > 500) return 'Title must be less than 500 characters'
-  }
-  if (content !== undefined) {
-    if (typeof content !== 'string') return 'Content must be a string'
-    if (content.length > 10000000) return 'Content must be less than 10MB'
-  }
-  return null
-}
-
 export const createDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
-    const { title, content, type, format } = req.body // Added format
-
-    // Validate format if provided
-    if (format && !['markdown', 'latex'].includes(format)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Invalid format. Must be "markdown" or "latex"'
-      })
-    }
-
-    // ✅ Validate input
-    const validationError = validateDocumentInput(title, content)
-    if (validationError) {
-      return res.status(400).json({
-        success: false,
-        error: validationError
-      })
-    }
+    // Input already validated by middleware
+    const { title, content, type, format } = req.body
 
     const detectedType = type || workflowDetector.detectDocumentType(content || '')
 
@@ -76,7 +28,7 @@ export const createDocument = async (req: AuthRequest, res: Response) => {
       title: title || 'Untitled Document',
       content: content || getDefaultTemplate(detectedType, format || 'markdown'),
       type: detectedType,
-      format: format || 'markdown', // Default to markdown
+      format: format || 'markdown',
       tags: workflowDetector.extractTags(content || ''),
       linkedDocuments: [],
       collaborators: [],
@@ -90,20 +42,14 @@ export const createDocument = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error creating document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to create document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to create document' })
   }
 }
 
 export const getDocuments = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const {
@@ -113,17 +59,13 @@ export const getDocuments = async (req: AuthRequest, res: Response) => {
       offset = 0,
       sortBy = 'updated_at',
       sortOrder = 'desc'
-    } = req.query
-
-    // ✅ Validate pagination parameters
-    const parsedLimit = Math.min(parseInt(limit as string) || 50, 100) // Max 100
-    const parsedOffset = Math.max(parseInt(offset as string) || 0, 0)
+    } = req.query as any
 
     const filters = {
       type: type as string,
-      tags: tags ? (tags as string).split(',').filter(t => t.trim()) : undefined,
-      limit: parsedLimit,
-      offset: parsedOffset,
+      tags: tags ? (tags as string).split(',').filter((t: string) => t.trim()) : undefined,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
       sortBy: sortBy as string,
       sortOrder: sortOrder as 'asc' | 'desc'
     }
@@ -142,24 +84,18 @@ export const getDocuments = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error fetching documents:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch documents'
-    })
+    res.status(500).json({ success: false, error: 'Failed to fetch documents' })
   }
 }
 
 export const getDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
-    const { token } = req.query // Optional share token
+    const { token } = req.query
 
     // First check if user is owner
     let document = await documentService.getDocument(req.userId, id)
@@ -192,10 +128,7 @@ export const getDocument = async (req: AuthRequest, res: Response) => {
     }
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found or access denied'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found or access denied' })
     }
 
     res.json({
@@ -210,44 +143,26 @@ export const getDocument = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error fetching document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to fetch document' })
   }
 }
 
 export const updateDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
-    const { token } = req.query // Optional share token
+    const { token } = req.query
     const updates = req.body
-
-    // ✅ Validate input
-    const validationError = validateDocumentInput(updates.title, updates.content)
-    if (validationError) {
-      return res.status(400).json({
-        success: false,
-        error: validationError
-      })
-    }
 
     // Check if user has edit permission (owner or via share with edit permission)
     if (token) {
       const accessInfo = await sharingService.checkAccess(req.userId, token as string)
 
       if (!accessInfo.hasAccess || accessInfo.permission !== 'edit' || accessInfo.documentId !== id) {
-        return res.status(403).json({
-          success: false,
-          error: 'You do not have edit permission for this document'
-        })
+        return res.status(403).json({ success: false, error: 'You do not have edit permission for this document' })
       }
 
       // Log the edit action
@@ -259,10 +174,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
       // Get share to find owner
       const share = await sharingService.getShareByToken(token as string)
       if (!share || share.document_id !== id) {
-        return res.status(404).json({
-          success: false,
-          error: 'Share not found'
-        })
+        return res.status(404).json({ success: false, error: 'Share not found' })
       }
 
       // Update document as owner
@@ -279,10 +191,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
       const document = await documentService.updateDocument(share.owner_id, id, updates)
 
       if (!document) {
-        return res.status(404).json({
-          success: false,
-          error: 'Document not found'
-        })
+        return res.status(404).json({ success: false, error: 'Document not found' })
       }
 
       logger.info(`Document updated via share: ${id} by user: ${req.userId}`)
@@ -313,10 +222,7 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
     const document = await documentService.updateDocument(req.userId, id, updates)
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     logger.info(`Document updated: ${id} by user: ${req.userId}`)
@@ -327,89 +233,46 @@ export const updateDocument = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error updating document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to update document' })
   }
 }
 
 export const deleteDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
     const deleted = await documentService.deleteDocument(req.userId, id)
 
     if (!deleted) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     logger.info(`Document deleted: ${id} by user: ${req.userId}`)
-    res.json({
-      success: true,
-      message: 'Document deleted successfully'
-    })
+    res.json({ success: true, message: 'Document deleted successfully' })
   } catch (error) {
     logger.error('Error deleting document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to delete document' })
   }
 }
 
 export const searchDocuments = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
-    const { q, type, limit = 20, offset = 0 } = req.query
-
-    if (!q || typeof q !== 'string') {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query is required'
-      })
-    }
-
-    // ✅ Validate query length
-    if (q.length < 2) {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query must be at least 2 characters'
-      })
-    }
-
-    if (q.length > 200) {
-      return res.status(400).json({
-        success: false,
-        error: 'Search query must be less than 200 characters'
-      })
-    }
-
-    const parsedLimit = Math.min(parseInt(limit as string) || 20, 100)
-    const parsedOffset = Math.max(parseInt(offset as string) || 0, 0)
+    const { q, type, limit = 20, offset = 0 } = req.query as any
 
     const results = await documentService.searchDocuments(
       req.userId,
       q as string,
       {
         type: type as string,
-        limit: parsedLimit,
-        offset: parsedOffset
+        limit: parseInt(limit),
+        offset: parseInt(offset)
       }
     )
 
@@ -418,55 +281,31 @@ export const searchDocuments = async (req: AuthRequest, res: Response) => {
       data: results.documents.map(formatDocumentDates),
       pagination: {
         total: results.total,
-        limit: parsedLimit,
-        offset: parsedOffset,
-        hasMore: results.total > parsedOffset + parsedLimit
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: results.total > parseInt(offset) + parseInt(limit)
       },
       query: q
     })
   } catch (error) {
     logger.error('Error searching documents:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to search documents'
-    })
+    res.status(500).json({ success: false, error: 'Failed to search documents' })
   }
 }
 
-// ✅ NEW: Rename document
 export const renameDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
     const { title } = req.body
 
-    if (!title || typeof title !== 'string' || title.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Title is required'
-      })
-    }
-
-    if (title.length > 500) {
-      return res.status(400).json({
-        success: false,
-        error: 'Title must be less than 500 characters'
-      })
-    }
-
     const document = await documentService.updateDocument(req.userId, id, { title: title.trim() })
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     logger.info(`Document renamed: ${id} to "${title}" by user: ${req.userId}`)
@@ -477,31 +316,21 @@ export const renameDocument = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error renaming document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to rename document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to rename document' })
   }
 }
 
-// ✅ NEW: Duplicate document
 export const duplicateDocument = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
     const originalDoc = await documentService.getDocument(req.userId, id)
 
     if (!originalDoc) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     const duplicatedDoc = await documentService.duplicateDocument(req.userId, id)
@@ -514,31 +343,21 @@ export const duplicateDocument = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error duplicating document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to duplicate document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to duplicate document' })
   }
 }
 
-// ✅ NEW: Toggle favorite status
 export const toggleFavorite = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { id } = req.params
     const document = await documentService.toggleFavorite(req.userId, id)
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        error: 'Document not found'
-      })
+      return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     logger.info(`Document favorite toggled: ${id} by user: ${req.userId}`)
@@ -549,30 +368,21 @@ export const toggleFavorite = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error toggling favorite:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to toggle favorite'
-    })
+    res.status(500).json({ success: false, error: 'Failed to toggle favorite' })
   }
 }
 
-// ✅ NEW: Get favorite documents
 export const getFavorites = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
-    const { limit = 50, offset = 0 } = req.query
-    const parsedLimit = Math.min(parseInt(limit as string) || 50, 100)
-    const parsedOffset = Math.max(parseInt(offset as string) || 0, 0)
+    const { limit = 50, offset = 0 } = req.query as any
 
     const result = await documentService.getFavorites(req.userId, {
-      limit: parsedLimit,
-      offset: parsedOffset
+      limit: parseInt(limit),
+      offset: parseInt(offset)
     })
 
     res.json({
@@ -580,32 +390,25 @@ export const getFavorites = async (req: AuthRequest, res: Response) => {
       data: result.documents.map(formatDocumentDates),
       pagination: {
         total: result.total,
-        limit: parsedLimit,
-        offset: parsedOffset,
-        hasMore: result.total > parsedOffset + parsedLimit
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        hasMore: result.total > parseInt(offset) + parseInt(limit)
       }
     })
   } catch (error) {
     logger.error('Error fetching favorites:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch favorites'
-    })
+    res.status(500).json({ success: false, error: 'Failed to fetch favorites' })
   }
 }
 
-// ✅ NEW: Get recently accessed documents
 export const getRecentDocuments = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
-    const { limit = 10 } = req.query
-    const parsedLimit = Math.min(parseInt(limit as string) || 10, 50)
+    const { limit = 10 } = req.query as any
+    const parsedLimit = Math.min(parseInt(limit) || 10, 50)
 
     const documents = await documentService.getRecentDocuments(req.userId, parsedLimit)
 
@@ -615,39 +418,17 @@ export const getRecentDocuments = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error fetching recent documents:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch recent documents'
-    })
+    res.status(500).json({ success: false, error: 'Failed to fetch recent documents' })
   }
 }
 
-// ✅ NEW: Bulk delete documents
 export const bulkDeleteDocuments = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { documentIds } = req.body
-
-    if (!Array.isArray(documentIds) || documentIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Document IDs array is required'
-      })
-    }
-
-    if (documentIds.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot delete more than 100 documents at once'
-      })
-    }
-
     const deletedCount = await documentService.bulkDeleteDocuments(req.userId, documentIds)
 
     logger.info(`Bulk deleted ${deletedCount} documents by user: ${req.userId}`)
@@ -658,52 +439,17 @@ export const bulkDeleteDocuments = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error bulk deleting documents:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to delete documents'
-    })
+    res.status(500).json({ success: false, error: 'Failed to delete documents' })
   }
 }
 
-// ✅ NEW: Bulk update tags
 export const bulkUpdateTags = async (req: AuthRequest, res: Response) => {
   try {
     if (!req.userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Not authenticated'
-      })
+      return res.status(401).json({ success: false, error: 'Not authenticated' })
     }
 
     const { documentIds, tags, operation } = req.body
-
-    if (!Array.isArray(documentIds) || documentIds.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Document IDs array is required'
-      })
-    }
-
-    if (!Array.isArray(tags) || tags.length === 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'Tags array is required'
-      })
-    }
-
-    if (!['add', 'remove', 'replace'].includes(operation)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Operation must be "add", "remove", or "replace"'
-      })
-    }
-
-    if (documentIds.length > 100) {
-      return res.status(400).json({
-        success: false,
-        error: 'Cannot update more than 100 documents at once'
-      })
-    }
 
     const updatedCount = await documentService.bulkUpdateTags(
       req.userId,
@@ -720,191 +466,8 @@ export const bulkUpdateTags = async (req: AuthRequest, res: Response) => {
     })
   } catch (error) {
     logger.error('Error bulk updating tags:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to update tags'
-    })
+    res.status(500).json({ success: false, error: 'Failed to update tags' })
   }
-}
-
-function getDefaultTemplate(type: string, format: string = 'markdown'): string {
-  if (format === 'latex') {
-    const latexTemplates = {
-      research: `\\documentclass{article}
-\\usepackage{graphicx}
-\\usepackage{hyperref}
-
-\\title{Research Paper Title}
-\\author{Author Name}
-\\date{\\today}
-
-\\begin{document}
-
-\\maketitle
-
-\\begin{abstract}
-Your abstract here...
-\\end{abstract}
-
-\\section{Introduction}
-Introduction to the research...
-
-\\section{Methodology}
-Description of methods...
-
-\\section{Results}
-Presentation of results...
-
-\\section{Conclusion}
-Summary and conclusions...
-
-\\end{document}`,
-
-      engineering: `\\documentclass{article}
-\\usepackage{listings}
-\\usepackage{xcolor}
-
-\\title{Technical Specification}
-\\author{Engineering Team}
-\\date{\\today}
-
-\\begin{document}
-
-\\maketitle
-
-\\section{Overview}
-Brief description of the project...
-
-\\section{Requirements}
-\\subsection{Functional}
-\\begin{itemize}
-    \\item Feature 1
-    \\item Feature 2
-\\end{itemize}
-
-\\section{Architecture}
-High-level system design...
-
-\\section{Implementation}
-\\begin{lstlisting}[language=Python]
-def hello_world():
-    print("Hello World")
-\\end{lstlisting}
-
-\\end{document}`,
-
-      general: `\\documentclass{article}
-
-\\title{Document Title}
-\\author{Author Name}
-\\date{\\today}
-
-\\begin{document}
-
-\\maketitle
-
-\\section{Section 1}
-Start writing your content here...
-
-\\end{document}`
-    }
-    return latexTemplates[type as keyof typeof latexTemplates] || latexTemplates.general
-  }
-
-  const templates = {
-    research: `# Research Document
-
-## Abstract
-Brief summary of your research...
-
-## Introduction
-Background and motivation...
-
-## Methodology
-How you conducted the research...
-
-## Results
-Key findings...
-
-## Conclusion
-Summary and implications...
-
-## References
-- Reference 1
-- Reference 2`,
-
-    engineering: `# Technical Specification
-
-## Overview
-Brief description of the project...
-
-## Requirements
-### Functional Requirements
-- Feature 1
-- Feature 2
-
-### Non-Functional Requirements
-- Performance requirements
-- Security requirements
-
-## Architecture
-High-level system design...
-
-## Implementation
-\`\`\`typescript
-// Code examples
-\`\`\`
-
-## Testing
-Test strategy and cases...`,
-
-    healthcare: `# Clinical Protocol
-
-## Patient Information
-- Patient ID: 
-- Date: 
-- Provider: 
-
-## Chief Complaint
-Primary reason for visit...
-
-## Assessment
-Clinical findings...
-
-## Plan
-Treatment plan and next steps...
-
-## Follow-up
-Scheduled appointments and monitoring...`,
-
-    meeting: `# Meeting Notes
-**Date:** ${new Date().toLocaleDateString()}
-**Attendees:** 
-**Duration:** 
-
-## Agenda
-1. Item 1
-2. Item 2
-3. Item 3
-
-## Discussion
-
-## Action Items
-- [ ] Task 1 - @person - Due: date
-- [ ] Task 2 - @person - Due: date
-
-## Next Steps`,
-
-    general: `# Document Title
-
-Start writing your content here...
-
-## Section 1
-
-## Section 2`
-  }
-
-  return templates[type as keyof typeof templates] || templates.general
 }
 
 export const compileDocument = async (req: AuthRequest, res: Response) => {
@@ -914,27 +477,22 @@ export const compileDocument = async (req: AuthRequest, res: Response) => {
     }
 
     const { id } = req.params
-    const document = await documentService.getDocument(id, req.userId)
+    const document = await documentService.getDocument(req.userId, id)
 
     if (!document) {
       return res.status(404).json({ success: false, error: 'Document not found' })
     }
 
     if (document.format !== 'latex') {
-      return res.status(400).json({ success: false, error: 'Document is not in LaTeX format' })
+      return res.status(400).json({ success: false, error: 'Document is not a LaTeX document' })
     }
 
     const pdfBuffer = await latexService.compileToPdf(document.content)
 
-    res.setHeader('Content-Type', 'application/pdf')
-    res.setHeader('Content-Disposition', `inline; filename="${document.title}.pdf"`)
+    res.contentType('application/pdf')
     res.send(pdfBuffer)
-
   } catch (error) {
     logger.error('Error compiling document:', error)
-    res.status(500).json({
-      success: false,
-      error: 'Failed to compile document'
-    })
+    res.status(500).json({ success: false, error: 'Failed to compile document' })
   }
 }
