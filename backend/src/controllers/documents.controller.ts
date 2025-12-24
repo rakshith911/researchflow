@@ -496,3 +496,19 @@ export const compileDocument = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ success: false, error: 'Failed to compile document' })
   }
 }
+
+// ✅ NEW: Get document template
+export const getDocumentTemplate = async (req: AuthRequest, res: Response) => {
+  try {
+    const { type, format } = req.query
+    const template = getDefaultTemplate((type as string) || 'general', (format as string) || 'markdown')
+
+    res.json({
+      success: true,
+      data: template
+    })
+  } catch (error) {
+    logger.error('Error fetching template:', error)
+    res.status(500).json({ success: false, error: 'Failed to fetch template' })
+  }
+}

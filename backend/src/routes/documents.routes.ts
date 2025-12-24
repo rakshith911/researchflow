@@ -14,7 +14,8 @@ import {
   getRecentDocuments,
   bulkDeleteDocuments,
   bulkUpdateTags,
-  compileDocument
+  compileDocument,
+  getDocumentTemplate
 } from '../controllers/documents.controller'
 import {
   addComment,
@@ -49,6 +50,7 @@ router.post('/bulk-tags', validateRequest(BulkOperationSchema), bulkUpdateTags)
 // Collection routes
 router.post('/', validateRequest(CreateDocumentSchema), createDocument)
 router.get('/', validateRequest(SearchDocumentSchema), getDocuments) // Reusing SearchSchema for basic list params
+router.get('/templates', getDocumentTemplate) // ✅ New: Get template content
 
 // Single document routes (MUST be last)
 router.get('/:id', validateRequest(DocumentIdSchema), getDocument)

@@ -2,6 +2,8 @@
 import { Router, Request, Response } from 'express'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { uploadImageMiddleware, handleMulterError } from '../middleware/upload.middleware'
+import { validateRequest } from '../middleware/validation.middleware'
+import { LinkFileSchema, FileIdSchema, UploadFileSchema } from '../schemas/upload.schemas'
 import {
   uploadFile,
   getUserFiles,
@@ -46,6 +48,7 @@ router.post(
   '/',
   uploadImageMiddleware.single('file'),
   handleMulterError,
+  validateRequest(UploadFileSchema), // Validate optional documentId
   uploadFile
 )
 
@@ -62,14 +65,14 @@ router.get('/files', getUserFiles)
  * @desc    Get specific file by ID
  * @access  Private
  */
-router.get('/files/:id', getFile)
+router.get('/files/:id', validateRequest(FileIdSchema), getFile)
 
 /**
  * @route   DELETE /api/upload/files/:id
  * @desc    Delete a file
  * @access  Private
  */
-router.delete('/files/:id', deleteFile)
+router.delete('/files/:id', validateRequest(FileIdSchema), deleteFile)
 
 /**
  * @route   POST /api/upload/link
@@ -77,7 +80,7 @@ router.delete('/files/:id', deleteFile)
  * @access  Private
  * @body    { fileId: string, documentId: string }
  */
-router.post('/link', linkFileToDocument)
+router.post('/link', validateRequest(LinkFileSchema), linkFileToDocument)
 
 /**
  * @route   GET /api/upload/stats

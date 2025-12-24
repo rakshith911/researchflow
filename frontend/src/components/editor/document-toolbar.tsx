@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge'
 import { useDocumentStore } from "@/stores/document-store"
 import { ExportDialog } from "./export-dialog"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Bold,
   Italic,
   Link,
@@ -21,9 +28,6 @@ import {
   Table,
   Keyboard,
   Strikethrough,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
   Minus,
   Share2,
   MessageSquare,
@@ -61,7 +65,28 @@ export function DocumentToolbar({
   const [showCommentsPanel, setShowCommentsPanel] = useState(false)
   const [showExportDialog, setShowExportDialog] = useState(false)
 
-  const { currentDocument } = useDocumentStore()
+  const { currentDocument, updateDocumentContent, getTemplate, updateDocument } = useDocumentStore()
+
+  const handleTemplateChange = async (type: string) => {
+    if (!currentDocument) return
+
+    if (confirm('Changing the template will overwrite current content. Continue?')) {
+      const content = await getTemplate(type, currentDocument.format || 'markdown')
+      console.log('Fetching template for:', type, 'Got content length:', content?.length)
+
+      if (content) {
+        updateDocumentContent(content)
+        // Update local store state immediately so dropdown reflects change
+        if (currentDocument) {
+          useDocumentStore.setState({
+            currentDocument: { ...currentDocument, type: type as any, content }
+          })
+          // Also persist type change to backend if needed (optional, assuming saveDocument picks it up or we call updateDocument)
+          updateDocument(currentDocument.id, { type: type as any })
+        }
+      }
+    }
+  }
 
   const handleInsert = (markdown: string) => {
     if (onInsertMarkdown) {
@@ -89,6 +114,25 @@ export function DocumentToolbar({
   return (
     <>
       <div className="flex items-center flex-wrap gap-1 p-2 border-b bg-background sticky top-0 z-10 w-full overflow-x-auto">
+        {/* Template Selector */}
+        <div className="flex items-center space-x-1 border-r border-border pr-2 mr-2">
+          <Select
+            value={currentDocument?.type || 'general'}
+            onValueChange={handleTemplateChange}
+          >
+            <SelectTrigger className="h-8 w-[130px] text-xs">
+              <SelectValue placeholder="Select type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="general">General</SelectItem>
+              <SelectItem value="research">Research</SelectItem>
+              <SelectItem value="engineering">Engineering</SelectItem>
+              <SelectItem value="healthcare">Healthcare</SelectItem>
+              <SelectItem value="meeting">Meeting</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Headings */}
         <div className="flex items-center space-x-1 border-r border-border pr-2">
           <Button

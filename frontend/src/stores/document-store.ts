@@ -54,6 +54,9 @@ interface DocumentStore {
   saveGuestDocument: (doc: Document) => void
   deleteGuestDocument: (id: string) => void
   clearGuestDocuments: () => void
+
+  // Helpers
+  getTemplate: (type: string, format?: 'markdown' | 'latex') => Promise<string>
 }
 
 // LocalStorage helpers
@@ -549,5 +552,19 @@ export const useDocumentStore = create<DocumentStore>((set, get) => ({
       recentDocuments: [],
       favoriteDocuments: []
     })
+  },
+
+  // Get template content
+  getTemplate: async (type: string, format?: 'markdown' | 'latex') => {
+    try {
+      const result = await apiClient.get<string>(`/api/documents/templates?type=${type}&format=${format || 'markdown'}`)
+      if (result.success && result.data) {
+        return result.data
+      }
+      return ''
+    } catch (error) {
+      console.error('Failed to get template:', error)
+      return ''
+    }
   }
 }))
